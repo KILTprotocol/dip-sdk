@@ -1,11 +1,13 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
+    "outDir": "dist/esm",
     "module": "Node16",
-    "noEmit": true
+    "moduleResolution": "Node16",
+    "declaration": true,
+    "declarationDir": "dist/esm"
   },
   "include": [
-    "tests/**/*.ts",
-    "src/**/*.ts"
+    "src"
   ]
 }

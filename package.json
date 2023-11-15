@@ -34,8 +34,8 @@
   "scripts": {
     "build": "yarn build:cjs && yarn build:esm",
     "build:cjs": "run -T tsc -p tsconfig.cjs.json && echo '{\"type\": \"commonjs\"}' > ./dist/cjs/package.json",
-    "build:esm": "run -T tsc -p tsconfig.esm.json && echo '{\"type\": \"module\"}' > ./dist/esm/package.json",
-    "check": "tsc -p tsconfig.json",
+    "build:esm": "run -T tsc -p tsconfig.json && echo '{\"type\": \"module\"}' > ./dist/esm/package.json",
+    "check": "tsc -p tsconfig.check.json",
     "clean": "yarn rimraf -g */{cjs,esm}",
     "lint": "eslint --ext .ts . && prettier -c .",
     "lint:fix": "prettier -w . && eslint --fix --ext .ts .",
