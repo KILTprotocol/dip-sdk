@@ -61,7 +61,7 @@ export function dipParentProofBuilder(): ObjectBuilder {
 }
 
 /**
- * Generate a complete DIP proof according to the parameters provided, to be used on the relay chain of which the provider chain is a parachain.
+ * Generate a submittable extrinsic for the provided call which includes a complete DIP proof according to the parameters provided, to be used on the relay chain of which the provider chain is a parachain.
  *
  * Parameters can be provided directly or can be combined on the builder.
  *
@@ -92,7 +92,7 @@ export function dipParentProofBuilder(): ObjectBuilder {
  *
  * @returns The [[SubmittableExtrinsic]] containing the signed cross-chain operation, that must be submitted by the account specified as the `submitterAddress` parameter.
  */
-export async function generateDipProofForParent({
+export async function generateDipAuthorizedTxForParent({
   call,
   didUri,
   keyIds,

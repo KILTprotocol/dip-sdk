@@ -62,7 +62,7 @@ export function dipSiblingProofBuilder(): ObjectBuilder {
 }
 
 /**
- * Generate a complete DIP proof according to the parameters provided, to be used on a consumer chain of which the provider chain is a sibling.
+ * Generate a submittable extrinsic for the provided call which includes a complete DIP proof according to the parameters provided, to be used on a consumer chain of which the provider chain is a sibling.
  *
  * Parameters can be provided directly or can be combined on the builder.
  *
@@ -95,7 +95,7 @@ export function dipSiblingProofBuilder(): ObjectBuilder {
  *
  * @returns The [[SubmittableExtrinsic]] containing the signed cross-chain operation, that must be submitted by the account specified as the `submitterAddress` parameter.
  */
-export async function generateDipProofForSibling({
+export async function generateDipAuthorizedTxForSibling({
   call,
   consumerApi,
   didUri,
