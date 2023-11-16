@@ -6,7 +6,7 @@
  */
 
 import { toChain } from "@kiltprotocol/did"
-import { ApiPromise, WsProvider } from "@polkadot/api"
+import { ApiPromise } from "@polkadot/api"
 import { u8aToHex } from "@polkadot/util"
 import { ObjectBuilder } from "typescript-object-builder"
 
@@ -18,7 +18,6 @@ import {
   generateProviderStateRootProof,
 } from "./utils.js"
 
-import type { FullnodeAddress } from "./utils.js"
 import type { PalletDidLookupLinkableAccountLinkableAccountId } from "@kiltprotocol/augment-api"
 import type {
   DidUri,
@@ -35,8 +34,8 @@ export type DipParentProofInput = {
   didUri: DidUri
   keyIds: Array<DidKey["id"]>
   proofVersion: number
-  providerWsOrApi: FullnodeAddress | ApiPromise
-  relayWsOrApi: FullnodeAddress | ApiPromise
+  providerApi: ApiPromise
+  relayApi: ApiPromise
   signer: SignExtrinsicCallback
   submitterAddress: KeyringPair["address"]
   keyRelationship: VerificationKeyRelationship
@@ -77,8 +76,8 @@ export function dipParentProofBuilder(): ObjectBuilder {
  * @param params.didUri The DID URI of the DIP subject that is performing the cross-chain operation.
  * @param params.keyIds The verification method IDs of the DID to be revealed in the cross-chain operation.
  * @param params.proofVersion The version of the DIP proof to generate.
- * @param params.providerWsOrApi The Websocket address or an [[ApiPromise]] instance for the provider chain.
- * @param params.relayWsOrApi The Websocket address or an [[ApiPromise]] instance for the relay chain.
+ * @param params.providerApi The [[ApiPromise]] instance for the provider chain.
+ * @param params.relayApi The [[ApiPromise]] instance for the relay chain.
  * @param params.signer The signing callback to sign the cross-chain transaction.
  * @param params.submitterAddress The address of the tx submitter on the relay chain.
  * @param params.keyRelationship The [[VerificationKeyRelationship]] required for the DIP operation to be authorized on the relay chain.
@@ -98,8 +97,8 @@ export async function generateDipProofForParent({
   didUri,
   keyIds,
   proofVersion,
-  providerWsOrApi,
-  relayWsOrApi,
+  providerApi,
+  relayApi,
   signer,
   submitterAddress,
   keyRelationship,
@@ -114,19 +113,6 @@ export async function generateDipProofForParent({
   includeWeb3Name = defaultValues.includeWeb3Name,
   linkedAccounts = defaultValues.linkedAccounts,
 }: DipParentProofInput): Promise<SubmittableExtrinsic> {
-  const relayApi = await (async () => {
-    if (typeof relayWsOrApi === "string") {
-      return ApiPromise.create({ provider: new WsProvider(relayWsOrApi) })
-    }
-    return relayWsOrApi
-  })()
-  const providerApi = await (async () => {
-    if (typeof providerWsOrApi === "string") {
-      return ApiPromise.create({ provider: new WsProvider(providerWsOrApi) })
-    }
-    return providerWsOrApi
-  })()
-
   const {
     proof: providerStateRootProof,
     providerBlockHeight: providerStateRootProofProviderBlockHeight,

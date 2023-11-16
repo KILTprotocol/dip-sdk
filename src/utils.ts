@@ -21,9 +21,6 @@ import type { Call, Hash, ReadProof } from "@polkadot/types/interfaces"
 import type { Option } from "@polkadot/types-codec"
 import type { Codec } from "@polkadot/types-codec/types"
 
-export type WsAddress = `ws${string}`
-export type FullnodeAddress = WsAddress
-
 export const defaultValues = {
   accountIdRuntimeType: "AccountId",
   blockNumberRuntimeType: "u64",
