@@ -1,37 +1,41 @@
 [settings]
-timeout = 1000
+enable_tracing = false
+node_spawn_timeout = 600  
 provider = "kubernetes"
+# 30 min
+timeout = 1800
 
 [relaychain]
-default_image = "parity/polkadot:v1.0.0"
 chain = "rococo-local"
+default_image = "parity/polkadot:v1.0.0"
+default_substrate_cli_args_version = 1
 
 [[relaychain.nodes]]
-name = "alice"
-rpc_port = 10001
+name = "relay-alice"
+ws_port = 10001
 
 [[relaychain.nodes]]
-name = "bob"
-rpc_port = 10002
+name = "relay-bob"
+ws_port = 10002
 
 [[relaychain.nodes]]
-name = "charlie"
-rpc_port = 10003
+name = "relay-charlie"
+ws_port = 10003
 
 [[parachains]]
 id = 2000
 
 [parachains.collator]
+command = "node-executable"
 name = "provider-alice"
 image = "kiltprotocol/dip-provider-node-template:dev-bcc1f405a48563f9620930fde26519ee332e2ab4"
 ws_port = 10011
-command = "node-executable"
 
 [[parachains]]
 id = 2001
 
 [parachains.collator]
+command = "node-executable"
 name = "consumer-alice"
 image = "kiltprotocol/dip-consumer-node-template:dev-bcc1f405a48563f9620930fde26519ee332e2ab4"
 ws_port = 10012
-command = "node-executable"
