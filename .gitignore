@@ -18,3 +18,7 @@ node_modules
 
 esm
 cjs
+
+# VSCode
+
+.vscode
