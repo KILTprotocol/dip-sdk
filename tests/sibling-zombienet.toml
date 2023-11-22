@@ -1,0 +1,38 @@
+[settings]
+timeout = 1000
+provider = "kubernetes"
+
+[relaychain]
+default_image = "parity/polkadot:v1.0.0"
+chain = "rococo-local"
+
+[[relaychain.nodes]]
+name = "alice"
+rpc_port = 10001
+
+# [[relaychain.nodes]]
+# name = "bob"
+# rpc_port = 10002
+
+# [[relaychain.nodes]]
+# name = "charlie"
+# rpc_port = 10003
+
+[[parachains]]
+id = 2000
+
+[parachains.collator]
+chain = "dev"
+name = "provider-alice"
+image = "kiltprotocol/dip-provider-node-template:dev-10385bb3b3c302a1bdbd6e4188b034a2f01047d1"
+ws_port = 10011
+command = "node-executable"
+
+# [[parachains]]
+# id = 2001
+
+# [parachains.collator]
+# name = "consumer-alice"
+# image = "kiltprotocol/dip-consumer-node-template:dev-10385bb3b3c302a1bdbd6e4188b034a2f01047d1"
+# ws_port = 10011
+# command = ""

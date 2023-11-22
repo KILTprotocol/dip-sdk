@@ -11,6 +11,7 @@
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^6.2.0",
     "@typescript-eslint/parser": "^6.2.0",
+    "@zombienet/cli": "^1.3.82",
     "eslint": "^8.45.0",
     "eslint-config-prettier": "^8.9.0",
     "eslint-plugin-import": "^2.27.5",
@@ -48,7 +49,8 @@
     "lint:fix": "prettier -w . && eslint --fix --ext .ts .",
     "test:e2e": "vitest run tests",
     "prepublish": "yarn exec cp -f ../../LICENSE .",
-    "publish": "yarn npm publish --access=public --tolerate-republish"
+    "publish": "yarn npm publish --access=public --tolerate-republish",
+    "test:e2e:zombienet:sibling": "yarn zombienet spawn tests/sibling-zombienet.toml"
   },
   "stableVersion": "0.0.0",
   "type": "module",
