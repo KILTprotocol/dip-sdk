@@ -50,7 +50,7 @@
     "test:e2e": "vitest run tests",
     "prepublish": "yarn exec cp -f ../../LICENSE .",
     "publish": "yarn npm publish --access=public --tolerate-republish",
-    "test:e2e:zombienet:sibling": "yarn zombienet spawn tests/sibling-zombienet.toml"
+    "test:e2e:zombienet:sibling": "yarn zombienet --spawn-concurrency 3 spawn tests/sibling-zombienet.toml"
   },
   "stableVersion": "0.0.0",
   "type": "module",
