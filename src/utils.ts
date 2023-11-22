@@ -57,12 +57,11 @@ export async function generateProviderStateRootProof({
   // Optional
   providerBlockHeight,
 }: ProviderStateRootProofOpts): Promise<ProviderStateRootProofRes> {
-  const providerChainId = await providerApi.query.parachainInfo.parachainId()
   const [providerBlockNumber, providerBlockHash] = await (async () => {
     if (providerBlockHeight !== undefined) {
-      const blockHash = await providerApi.derive.chain
-        .getBlockByNumber(providerBlockHeight)
-        .then((b) => b.hash)
+      const blockHash = (
+        await providerApi.derive.chain.getBlockByNumber(providerBlockHeight)
+      ).hash
       return [providerBlockHeight, blockHash]
     }
     const providerLastFinalizedBlockHash =
@@ -72,6 +71,9 @@ export async function generateProviderStateRootProof({
       .then((h) => h.number.toNumber())
     return [providerLastFinalizedBlockHeight, providerLastFinalizedBlockHash]
   })()
+  const providerApiAtBlock = await providerApi.at(providerBlockHash)
+  const providerChainId =
+    await providerApiAtBlock.query.parachainInfo.parachainId()
   const relayParentBlockNumber = await providerApi
     .at(providerBlockHash)
     .then((api) => api.query.parachainSystem.lastRelayChainBlockNumber())
@@ -238,29 +240,12 @@ export async function generateDipDidSignature({
     genesisHash,
   },
 }: DipDidSignatureOpts): Promise<DipDidSignatureRes> {
-  const blockNumber = await (async () => {
-    if (blockHeight !== undefined) {
-      return blockHeight
-    }
-    const n = await api.query.system.number()
-    return n.toNumber()
-  })()
-  const genesis = await (async () => {
-    if (genesisHash !== undefined) {
-      return genesisHash
-    }
-    return api.query.system.blockHash(0)
-  })()
-  const identityDetails = await (async () => {
-    const maybeIdentityDetails = (await api.query.dipConsumer.identityEntries(
-      toChain(didUri),
-    )) as Option<Codec>
-    try {
-      return maybeIdentityDetails.unwrap()
-    } catch {
-      return api.createType(identityDetailsRuntimeType, null)
-    }
-  })()
+  const blockNumber =
+    blockHeight ?? (await api.query.system.number()).toNumber()
+  const genesis = genesisHash ?? (await api.query.system.blockHash(0))
+  const identityDetails = (
+    await api.query.dipConsumer.identityEntries<Option<Codec>>(toChain(didUri))
+  ).unwrapOr(api.createType(identityDetailsRuntimeType, null))
 
   const signaturePayload = api
     .createType(
