@@ -12,14 +12,17 @@ default_substrate_cli_args_version = 1
 
 [[relaychain.nodes]]
 name = "relay-alice"
+rpc_port = 10001
 ws_port = 10001
 
 [[relaychain.nodes]]
 name = "relay-bob"
+rpc_port = 10002
 ws_port = 10002
 
 [[relaychain.nodes]]
 name = "relay-charlie"
+rpc_port = 10003
 ws_port = 10003
 
 [[parachains]]
@@ -29,6 +32,7 @@ id = 2000
 command = "node-executable"
 name = "provider-alice"
 image = "kiltprotocol/dip-provider-node-template:dev-release-bcc1f405a48563f9620930fde26519ee332e2ab4"
+rpc_port = 10011
 ws_port = 10011
 
 [[parachains]]
@@ -38,4 +42,5 @@ id = 2001
 command = "node-executable"
 name = "consumer-alice"
 image = "kiltprotocol/dip-consumer-node-template:dev-release-bcc1f405a48563f9620930fde26519ee332e2ab4"
+rpc_port = 10012
 ws_port = 10012
