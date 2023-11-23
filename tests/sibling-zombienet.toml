@@ -28,7 +28,7 @@ id = 2000
 [parachains.collator]
 command = "node-executable"
 name = "provider-alice"
-image = "kiltprotocol/dip-provider-node-template:dev-bcc1f405a48563f9620930fde26519ee332e2ab4"
+image = "kiltprotocol/dip-provider-node-template:dev-release-bcc1f405a48563f9620930fde26519ee332e2ab4"
 ws_port = 10011
 
 [[parachains]]
@@ -37,5 +37,5 @@ id = 2001
 [parachains.collator]
 command = "node-executable"
 name = "consumer-alice"
-image = "kiltprotocol/dip-consumer-node-template:dev-bcc1f405a48563f9620930fde26519ee332e2ab4"
+image = "kiltprotocol/dip-consumer-node-template:dev-release-bcc1f405a48563f9620930fde26519ee332e2ab4"
 ws_port = 10012
