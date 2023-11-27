@@ -1,5 +1,7 @@
 #!/usr/bin/env sh
 
+# Starts a Zombienet network with the provided config file, and saves its pid in a file under the `tmp` directory in the root of the project.
+
 if [ $# -ne 1 ]; then
     echo 'One argument indicating the Zombienet config file path is expected.'
     exit 1
