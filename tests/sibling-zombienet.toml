@@ -1,9 +1,6 @@
 [settings]
 enable_tracing = false
-node_spawn_timeout = 600  
 provider = "kubernetes"
-# 30 min
-timeout = 1800
 
 [relaychain]
 chain = "rococo-local"
