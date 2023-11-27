@@ -9,10 +9,12 @@ fi
 
 CONFIG_FILE_PATH=$1
 TMP_FILE_FOR_FILE="./tmp/$CONFIG_FILE_PATH"
+TMP_LOG_FILE_FOR_FILE="$TMP_FILE_FOR_FILE-out.txt"
+TMP_ERR_FILE_FOR_FILE="$TMP_FILE_FOR_FILE-err.txt"
 
 set -x
 PID=$(cat $TMP_FILE_FOR_FILE)
 kill $PID >/dev/null
-rm -rf $TMP_FILE_FOR_FILE
+rm -rf $TMP_FILE_FOR_FILE $TMP_LOG_FILE_FOR_FILE $TMP_ERR_FILE_FOR_FILE
 # Remove whole hierarchy if not other file is present.
 find ./tmp -depth -type d -empty -exec rmdir "{}" \;

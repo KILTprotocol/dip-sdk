@@ -5,6 +5,8 @@
  * found in the LICENSE file in the root directory of this source tree.
  */
 
+// TODO: Push new Docker images baeing built on the kilt-node, update the Zombienet configuration and try again
+
 import * as Kilt from "@kiltprotocol/sdk-js"
 import { ApiPromise, WsProvider } from "@polkadot/api"
 import { ObjectBuilder } from "typescript-object-builder"
@@ -45,21 +47,24 @@ describe('V0', () => {
   })
 
   beforeEach(async () => {
-    // TODO: Deploy the `utility` pallet on the provider and consumer templates, and batch all txs into a single `api.tx.utility.batchAll()`.
     const newSubmitterKeypair = keyring.addFromMnemonic(Kilt.Utils.Crypto.mnemonicGenerate())
     const balanceTransferTx = providerApi.tx.balances.transfer(newSubmitterKeypair.address, 10 ** 15)
     await Kilt.Blockchain.signAndSubmitTx(balanceTransferTx, sudoKeypair)
     const newDidKeypair = keyring.addFromMnemonic(Kilt.Utils.Crypto.mnemonicGenerate())
     // @ts-expect-error We know that the type is an "sr25519"
     const newLightDid = Kilt.Did.createLightDidDocument({ authentication: [{ ...newDidKeypair }] })
+    const newFullDidUri = Kilt.Did.getFullDidUri(newLightDid.uri)
     const signCallback: GetStoreTxSignCallback = (async ({ data }) => ({ signature: await newDidKeypair.sign(data), keyType: newDidKeypair.type as VerificationKeyType }))
-    const creationTx = await Kilt.Did.getStoreTx(newLightDid, newSubmitterKeypair.address as KiltAddress, signCallback)
-    await Kilt.Blockchain.signAndSubmitTx(creationTx, newSubmitterKeypair)
+    const didCreationTx = await Kilt.Did.getStoreTx(newLightDid, newSubmitterKeypair.address as KiltAddress, signCallback)
+    const web3NameTx = await Kilt.Did.authorizeTx(newFullDidUri, providerApi.tx.web3Names.claim('test'), signCallback, newSubmitterKeypair.address as KiltAddress)
+    const commitIdentityTx = await Kilt.Did.authorizeTx(newFullDidUri, providerApi.tx.dipProvider.commitIdentity(Kilt.Did.toChain(newFullDidUri), 0), signCallback, newSubmitterKeypair.address as KiltAddress)
+    const batchedTx = providerApi.tx.utility.batchAll([
+      didCreationTx,
+      web3NameTx,
+      commitIdentityTx
+    ])
+    await Kilt.Blockchain.signAndSubmitTx(batchedTx, newSubmitterKeypair, { resolveOn: Kilt.Blockchain.IS_FINALIZED })
     const newFullDid = (await Kilt.Did.resolve(newLightDid.uri))?.document as DidDocument
-    const web3NameTx = await Kilt.Did.authorizeTx(newFullDid.uri, providerApi.tx.web3Names.claim('test'), signCallback, newSubmitterKeypair.address as KiltAddress)
-    await Kilt.Blockchain.signAndSubmitTx(web3NameTx, newSubmitterKeypair)
-    const commitIdentityTx = await Kilt.Did.authorizeTx(newFullDid.uri, providerApi.tx.dipProvider.commitIdentity(Kilt.Did.toChain(newFullDid.uri), 0), signCallback, newSubmitterKeypair.address as KiltAddress)
-    await Kilt.Blockchain.signAndSubmitTx(commitIdentityTx, newSubmitterKeypair, { resolveOn: Kilt.Blockchain.IS_FINALIZED })
     submitterKeypair = newSubmitterKeypair
     did = newFullDid
     didKeypair = newDidKeypair
