@@ -1,0 +1,13 @@
+#!/usr/bin/env sh
+
+if [ $# -ne 1 ]; then
+    echo 'One argument indicating the Zombienet config file path is expected.'
+    exit 1
+fi
+
+CONFIG_FILE_PATH=$1
+TMP_FILE_FOR_FILE="./tmp/$CONFIG_FILE_PATH"
+
+set -x
+PID=$(cat $TMP_FILE_FOR_FILE)
+kill $PID >/dev/null

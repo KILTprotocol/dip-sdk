@@ -1,0 +1,15 @@
+#!/usr/bin/env sh
+
+if [ $# -ne 1 ]; then
+    echo 'One argument indicating the Zombienet config file path is expected.'
+    exit 1
+fi
+
+CONFIG_FILE_PATH=$1
+TMP_FOLDER_FOR_FILE="./tmp/$(dirname $CONFIG_FILE_PATH)"
+TMP_FILE_FOR_FILE="./tmp/$CONFIG_FILE_PATH"
+
+set -x
+yarn zombienet --spawn-concurrency 3 spawn $CONFIG_FILE_PATH >/dev/null 2>&1 &
+mkdir -p $TMP_FOLDER_FOR_FILE && touch $TMP_FILE_FOR_FILE
+echo $! > $TMP_FILE_FOR_FILE
