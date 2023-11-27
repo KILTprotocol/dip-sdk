@@ -9,10 +9,11 @@
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "sourceMap": false,
-    "declaration": false,
     "declarationMap": false,
     "esModuleInterop": false,
-    "skipLibCheck": true
+    "skipLibCheck": true,
   },
-  "exclude": ["node_modules", "**/*.test.ts", "**/*.d.ts"]
+  "exclude": [
+    "**/*.d.ts"
+  ]
 }

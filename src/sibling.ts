@@ -8,7 +8,6 @@
 import { toChain } from "@kiltprotocol/did"
 import { ApiPromise } from "@polkadot/api"
 import { u8aToHex } from "@polkadot/util"
-import { ObjectBuilder } from "typescript-object-builder"
 
 import {
   defaultValues,
@@ -53,26 +52,7 @@ export type DipSiblingProofInput = {
 }
 
 /**
- * Return a new instance of the builder to generate DIP proofs for a sibling parachain.
- *
- * @returns A fresh instance of an [[ObjectBuilder]].
- */
-export function dipSiblingProofBuilder(): ObjectBuilder {
-  return ObjectBuilder.new<DipSiblingProofInput>()
-}
-
-/**
  * Generate a submittable extrinsic for the provided call which includes a complete DIP proof according to the parameters provided, to be used on a consumer chain of which the provider chain is a sibling.
- *
- * Parameters can be provided directly or can be combined on the builder.
- *
- * @example
- * const builder = dipSiblingProofBuilder()
- * builder.with(...).with(...).with(...)
- * const params = builder.build()
- * const proof = generateDipProofForSibling(params)
- *
- *
  * @param params The DIP proof params.
  * @param params.call The [[Call]] on the consumer chain that requires a DIP origin.
  * @param params.consumerApi The [[ApiPromise]] instance for the consumer chain.

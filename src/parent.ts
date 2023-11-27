@@ -8,7 +8,6 @@
 import { toChain } from "@kiltprotocol/did"
 import { ApiPromise } from "@polkadot/api"
 import { u8aToHex } from "@polkadot/util"
-import { ObjectBuilder } from "typescript-object-builder"
 
 import {
   defaultValues,
@@ -51,25 +50,9 @@ export type DipParentProofInput = {
   linkedAccounts?: readonly PalletDidLookupLinkableAccountLinkableAccountId[]
 }
 
-/**
- * Return a new instance of the builder to generate DIP proofs for the parent relaychain.
- *
- * @returns A fresh instance of an [[ObjectBuilder]].
- */
-export function dipParentProofBuilder(): ObjectBuilder {
-  return ObjectBuilder.new<DipParentProofInput>()
-}
 
 /**
  * Generate a submittable extrinsic for the provided call which includes a complete DIP proof according to the parameters provided, to be used on the relay chain of which the provider chain is a parachain.
- *
- * Parameters can be provided directly or can be combined on the builder.
- *
- * @example
- * const builder = dipParentProofBuilder()
- * builder.with(...).with(...).with(...)
- * const params = builder.build()
- * const proof = generateDipProofForParent(params)
  *
  * @param params The DIP proof params.
  * @param params.call The [[Call]] on the relay chain that requires a DIP origin.
