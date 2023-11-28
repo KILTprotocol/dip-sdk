@@ -18,7 +18,7 @@ import type {
 import type { ApiPromise } from "@polkadot/api"
 import type { KeyringPair } from "@polkadot/keyring/types"
 import type { Call, Hash, ReadProof } from "@polkadot/types/interfaces"
-import type { Option } from "@polkadot/types-codec"
+import type { Result } from "@polkadot/types-codec"
 import type { Codec } from "@polkadot/types-codec/types"
 
 export const defaultValues = {
@@ -39,7 +39,6 @@ type ProviderStateRootProofRes = {
   proof: ReadProof
   providerBlockHeight: number
   relayBlockHeight: number
-  relayParentBlockHash: Hash
 }
 /**
  * Generate a state proof that proofs the head of the specified parachain.
@@ -57,40 +56,47 @@ export async function generateProviderStateRootProof({
   // Optional
   providerBlockHeight,
 }: ProviderStateRootProofOpts): Promise<ProviderStateRootProofRes> {
+  console.log("A")
   const [providerBlockNumber, providerBlockHash] = await (async () => {
     if (providerBlockHeight !== undefined) {
-      const blockHash = (
-        await providerApi.derive.chain.getBlockByNumber(providerBlockHeight)
-      ).hash
+      console.log("B")
+      const blockHash = await providerApi.rpc.chain.getBlockHash(providerBlockHeight)
+      console.log("C")
       return [providerBlockHeight, blockHash]
     }
+    console.log("D")
     const providerLastFinalizedBlockHash =
       await providerApi.rpc.chain.getFinalizedHead()
+    console.log("E")
     const providerLastFinalizedBlockHeight = await providerApi.rpc.chain
       .getHeader(providerLastFinalizedBlockHash)
       .then((h) => h.number.toNumber())
+    console.log("F")
     return [providerLastFinalizedBlockHeight, providerLastFinalizedBlockHash]
   })()
+  console.log("G")
   const providerApiAtBlock = await providerApi.at(providerBlockHash)
+  console.log("H")
   const providerChainId =
     await providerApiAtBlock.query.parachainInfo.parachainId()
-  const relayParentBlockNumber = await providerApi
-    .at(providerBlockHash)
-    .then((api) => api.query.parachainSystem.lastRelayChainBlockNumber())
+  console.log("I")
+  const relayParentBlockNumber = await providerApiAtBlock.query.parachainSystem.lastRelayChainBlockNumber()
+  console.log("J")
   const relayParentBlockHash = await relayApi.rpc.chain.getBlockHash(
     relayParentBlockNumber,
   )
+  console.log("K")
 
   const proof = await relayApi.rpc.state.getReadProof(
     [relayApi.query.paras.heads.key(providerChainId)],
     relayParentBlockHash,
   )
+  console.log("L")
 
   return {
     proof,
     providerBlockHeight: providerBlockNumber,
-    relayBlockHeight: relayParentBlockNumber.toNumber(),
-    relayParentBlockHash,
+    relayBlockHeight: (relayParentBlockNumber as any).toNumber(),
   }
 }
 
@@ -169,15 +175,20 @@ export async function generateDipIdentityProof({
   providerApi,
   version,
 }: DipIdentityProofOpts): Promise<DipIdentityProofRes> {
-  const proof = (await providerApi.call.dipProvider.generateProof({
+  const proof = (await providerApi.call.dipProvider.generateProof<Result<Codec, Codec>>({
     identifier: toChain(did),
     version,
     keys: keyIds.map((keyId) => keyId.substring(1)),
     accounts: linkedAccounts,
     shouldIncludeWeb3Name: includeWeb3Name,
-  })) as Option<Codec>
+  }))
 
-  const okProof = proof.unwrap() as any
+  if (proof.isErr) {
+    throw new Error(providerApi.findError(proof.asErr.toHex()).docs.join('\n'))
+  }
+
+  // TODO: Better way to cast this?
+  const okProof = proof.asOk.toJSON() as any
 
   return { ...okProof }
 }
@@ -241,7 +252,7 @@ export async function generateDipDidSignature({
   },
 }: DipDidSignatureOpts): Promise<DipDidSignatureRes> {
   const blockNumber =
-    blockHeight ?? (await api.query.system.number()).toNumber()
+    blockHeight ?? ((await api.query.system.number()) as any).toNumber()
   const genesis = genesisHash ?? (await api.query.system.blockHash(0))
   const identityDetails = (
     await api.query.dipConsumer.identityEntries<Option<Codec>>(toChain(didUri))

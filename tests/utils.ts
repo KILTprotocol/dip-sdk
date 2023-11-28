@@ -31,7 +31,7 @@ const dipProviderCalls: DefinitionsCall = {
   ],
   ...didCalls,
 }
-const dipProviderTypes: RegistryTypes = {
+const dipTypes: RegistryTypes = {
   ...types,
   IdentityCommitmentVersion: 'u16',
   // DipProvider state_call
@@ -106,5 +106,5 @@ const dipProviderTypes: RegistryTypes = {
 }
 
 export async function createProviderApi(address: string): Promise<ApiPromise> {
-  return ApiPromise.create({ provider: new WsProvider(address), runtime: dipProviderCalls, types: dipProviderTypes })
+  return ApiPromise.create({ provider: new WsProvider(address), runtime: dipProviderCalls, types: dipTypes })
 }

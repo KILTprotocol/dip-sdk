@@ -98,7 +98,7 @@ export async function generateDipAuthorizedTxForSibling({
   linkedAccounts = defaultValues.linkedAccounts,
 }: DipSiblingProofInput): Promise<SubmittableExtrinsic> {
   const {
-    proof: providerStateRootProof,
+    proof: { proof: providerStateRootProof },
     providerBlockHeight: providerStateRootProofProviderBlockHeight,
     relayBlockHeight: providerStateRootProofRelayBlockHeight,
   } = await generateProviderStateRootProof({
@@ -112,7 +112,7 @@ export async function generateDipAuthorizedTxForSibling({
     providerStateRootProofProviderBlockHeight - 1,
   )
 
-  const { proof: dipCommitmentProof } = await generateDipCommitmentProof({
+  const { proof: { proof: dipCommitmentProof } } = await generateDipCommitmentProof({
     didUri,
     providerApi,
     providerBlockHash: dipRootProofBlockHash,
@@ -170,5 +170,5 @@ export async function generateDipAuthorizedTxForSibling({
         },
       },
     },
-  })
+  }, call)
 }
