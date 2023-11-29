@@ -18,7 +18,7 @@ import type {
 import type { ApiPromise } from "@polkadot/api"
 import type { KeyringPair } from "@polkadot/keyring/types"
 import type { Call, Hash, ReadProof } from "@polkadot/types/interfaces"
-import type { Result } from "@polkadot/types-codec"
+import type { Result, Option } from "@polkadot/types-codec"
 import type { Codec } from "@polkadot/types-codec/types"
 
 export const defaultValues = {
@@ -56,42 +56,33 @@ export async function generateProviderStateRootProof({
   // Optional
   providerBlockHeight,
 }: ProviderStateRootProofOpts): Promise<ProviderStateRootProofRes> {
-  console.log("A")
   const [providerBlockNumber, providerBlockHash] = await (async () => {
     if (providerBlockHeight !== undefined) {
-      console.log("B")
-      const blockHash = await providerApi.rpc.chain.getBlockHash(providerBlockHeight)
-      console.log("C")
+      const blockHash =
+        await providerApi.rpc.chain.getBlockHash(providerBlockHeight)
       return [providerBlockHeight, blockHash]
     }
-    console.log("D")
     const providerLastFinalizedBlockHash =
       await providerApi.rpc.chain.getFinalizedHead()
-    console.log("E")
     const providerLastFinalizedBlockHeight = await providerApi.rpc.chain
       .getHeader(providerLastFinalizedBlockHash)
       .then((h) => h.number.toNumber())
-    console.log("F")
     return [providerLastFinalizedBlockHeight, providerLastFinalizedBlockHash]
   })()
-  console.log("G")
   const providerApiAtBlock = await providerApi.at(providerBlockHash)
-  console.log("H")
   const providerChainId =
     await providerApiAtBlock.query.parachainInfo.parachainId()
-  console.log("I")
-  const relayParentBlockNumber = await providerApiAtBlock.query.parachainSystem.lastRelayChainBlockNumber()
-  console.log("J")
+  const relayParentBlockNumber =
+    await providerApiAtBlock.query.parachainSystem.lastRelayChainBlockNumber()
+  // This refers to the previously finalized block, we need the current one.
   const relayParentBlockHash = await relayApi.rpc.chain.getBlockHash(
     relayParentBlockNumber,
   )
-  console.log("K")
 
   const proof = await relayApi.rpc.state.getReadProof(
     [relayApi.query.paras.heads.key(providerChainId)],
     relayParentBlockHash,
   )
-  console.log("L")
 
   return {
     proof,
@@ -175,16 +166,18 @@ export async function generateDipIdentityProof({
   providerApi,
   version,
 }: DipIdentityProofOpts): Promise<DipIdentityProofRes> {
-  const proof = (await providerApi.call.dipProvider.generateProof<Result<Codec, Codec>>({
+  const proof = await providerApi.call.dipProvider.generateProof<
+    Result<Codec, Codec>
+  >({
     identifier: toChain(did),
     version,
     keys: keyIds.map((keyId) => keyId.substring(1)),
     accounts: linkedAccounts,
     shouldIncludeWeb3Name: includeWeb3Name,
-  }))
+  })
 
   if (proof.isErr) {
-    throw new Error(providerApi.findError(proof.asErr.toHex()).docs.join('\n'))
+    throw new Error(providerApi.findError(proof.asErr.toHex()).docs.join("\n"))
   }
 
   // TODO: Better way to cast this?

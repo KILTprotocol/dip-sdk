@@ -112,7 +112,9 @@ export async function generateDipAuthorizedTxForSibling({
     providerStateRootProofProviderBlockHeight - 1,
   )
 
-  const { proof: { proof: dipCommitmentProof } } = await generateDipCommitmentProof({
+  const {
+    proof: { proof: dipCommitmentProof },
+  } = await generateDipCommitmentProof({
     didUri,
     providerApi,
     providerBlockHash: dipRootProofBlockHash,
@@ -150,25 +152,29 @@ export async function generateDipAuthorizedTxForSibling({
     },
   })
 
-  return consumerApi.tx.dipConsumer.dispatchAs(toChain(didUri), {
-    [`V${proofVersion}`]: {
-      paraStateRoot: {
-        relayBlockHeight: providerStateRootProofRelayBlockHeight,
-        proof: providerStateRootProof,
-      },
-      dipIdentityCommitment: dipCommitmentProof,
-      did: {
-        leaves: {
-          blinded: dipIdentityProof.blinded,
-          revealed: dipIdentityProof.revealed,
+  return consumerApi.tx.dipConsumer.dispatchAs(
+    toChain(didUri),
+    {
+      [`V${proofVersion}`]: {
+        paraStateRoot: {
+          relayBlockHeight: providerStateRootProofRelayBlockHeight,
+          proof: providerStateRootProof,
         },
-        signature: {
-          signature: {
-            [didSignatureType]: u8aToHex(didSignature),
+        dipIdentityCommitment: dipCommitmentProof,
+        did: {
+          leaves: {
+            blinded: dipIdentityProof.blinded,
+            revealed: dipIdentityProof.revealed,
           },
-          blockNumber: didSignatureBlockNumber,
+          signature: {
+            signature: {
+              [didSignatureType]: u8aToHex(didSignature),
+            },
+            blockNumber: didSignatureBlockNumber,
+          },
         },
       },
     },
-  }, call)
+    call,
+  )
 }

@@ -50,7 +50,6 @@ export type DipParentProofInput = {
   linkedAccounts?: readonly PalletDidLookupLinkableAccountLinkableAccountId[]
 }
 
-
 /**
  * Generate a submittable extrinsic for the provided call which includes a complete DIP proof according to the parameters provided, to be used on the relay chain of which the provider chain is a parachain.
  *
@@ -100,7 +99,6 @@ export async function generateDipAuthorizedTxForParent({
     proof: providerStateRootProof,
     providerBlockHeight: providerStateRootProofProviderBlockHeight,
     relayBlockHeight: providerStateRootProofRelayBlockHeight,
-    relayParentBlockHash: providerStateRootProofRelayBlockHash,
   } = await generateProviderStateRootProof({
     relayApi,
     providerApi,
@@ -108,7 +106,7 @@ export async function generateDipAuthorizedTxForParent({
   })
 
   const providerStateRootProofRelayBlockHeader =
-    await relayApi.rpc.chain.getHeader(providerStateRootProofRelayBlockHash)
+    await relayApi.rpc.chain.getHeader(providerStateRootProof.at)
 
   // Proof of commitment must be generated with the state root at the block before the last one finalized.
   const dipRootProofBlockHash = await providerApi.rpc.chain.getBlockHash(

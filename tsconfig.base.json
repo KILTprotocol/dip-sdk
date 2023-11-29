@@ -11,9 +11,7 @@
     "sourceMap": false,
     "declarationMap": false,
     "esModuleInterop": false,
-    "skipLibCheck": true,
+    "skipLibCheck": true
   },
-  "exclude": [
-    "**/*.d.ts"
-  ]
+  "exclude": ["**/*.d.ts"]
 }
