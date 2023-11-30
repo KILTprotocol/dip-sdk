@@ -14,7 +14,7 @@ import { BN } from "bn.js"
 import { beforeAll, describe, it, expect, beforeEach } from "vitest"
 
 import { createProviderApi, signAndSubmitTx } from "./utils.js"
-import { generateDipAuthorizedTxForSibling } from "../src/index.js"
+
 
 import type { DipSiblingProofInput } from "../src/index.js"
 import type { GetStoreTxSignCallback, Web3Name } from "@kiltprotocol/did"
@@ -26,6 +26,8 @@ import type {
 import type { Option } from "@polkadot/types/codec"
 import type { Call } from "@polkadot/types/interfaces"
 import type { Codec } from "@polkadot/types/types"
+
+import { generateDipAuthorizedTxForSibling } from "../src/index.js"
 
 const baseConfig: Pick<
   DipSiblingProofInput,
@@ -46,9 +48,9 @@ const providerAndConsumerSudoKeypair = keyring.addFromUri("//Alice")
 
 Kilt.ConfigService.set({ submitTxResolveOn: Kilt.Blockchain.IS_IN_BLOCK })
 
-const relayAddress = "ws://127.0.0.1:42037"
-const providerAddress = "ws://127.0.0.1:46157"
-const consumerAddress = "ws://127.0.0.1:40171"
+const relayAddress = "ws://127.0.0.1:33925"
+const providerAddress = "ws://127.0.0.1:45931"
+const consumerAddress = "ws://127.0.0.1:45279"
 
 describe("V0", () => {
   // beforeAll
@@ -183,7 +185,7 @@ describe("V0", () => {
     }
   }, 96_000)
 
-  it("Successful post on the consumer's PostIt pallet", async () => {
+  it("Successful posts on the consumer's PostIt pallet", async () => {
     const { consumerApi } = testConfig
     const postText = "Hello, world!"
     const config: DipSiblingProofInput = {
