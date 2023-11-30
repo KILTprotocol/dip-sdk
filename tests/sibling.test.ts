@@ -193,7 +193,7 @@ describe("V0", () => {
     withCrossModuleSystemImport<typeof import("@kiltprotocol/dip-sdk")>(
       "..",
       async (DipSdk) => {
-        it("Successful posts on the consumer's PostIt pallet", async () => {
+        it("Successful posts on the consumer's PostIt pallet using by default the latest provider finalized block", async () => {
           const { consumerApi } = testConfig
           const postText = "Hello, world!"
           const config: DipSiblingProofInput = {
@@ -231,44 +231,46 @@ describe("V0", () => {
             postEntry.isSome,
             "Post should successfully be stored on the chain",
           ).toBe(true)
+        })
 
-          // Try again using an explicit block number, should yield the same result.
-          const newPostText = "Hello, world 2!"
-          const newConfig: DipSiblingProofInput = {
-            ...config,
-            providerBlockHeight: lastTestSetupProviderBlockNumber,
-            call: consumerApi.tx.postIt.post(newPostText).method as Call,
+        it("Successful posts on the consumer's PostIt pallet using the same block as before", async () => {
+          const { consumerApi } = testConfig
+          const postText = "Hello, world!"
+          const config: DipSiblingProofInput = {
+            ...testConfig,
+            call: consumerApi.tx.postIt.post(postText).method as Call,
+            // Set explicit block number for the DIP proof
+            providerBlockHeight: lastTestSetupProviderBlockNumber
           }
 
-          const newCrossChainTx =
-            await DipSdk.generateDipAuthorizedTxForSibling(newConfig)
-          const { status: newStatus } = await signAndSubmitTx(
+          const crossChainTx =
+            await DipSdk.generateDipAuthorizedTxForSibling(config)
+          const { status } = await signAndSubmitTx(
             consumerApi,
-            newCrossChainTx,
+            crossChainTx,
             submitterKeypair,
           )
           expect(
-            newStatus.isInBlock,
+            status.isInBlock,
             "Status of submitted tx should be in block.",
           ).toBe(true)
-          const newBlockHash = newStatus.asInBlock
-          const newBlockNumber = (
-            await consumerApi.rpc.chain.getHeader(newBlockHash)
-          ).number
+          const blockHash = status.asInBlock
+          const blockNumber = (await consumerApi.rpc.chain.getHeader(blockHash))
+            .number
           // The example PostIt pallet generates the storage key for a post by hashing (block number, submitter's username, content of the post).
-          const newPostKey = blake2AsHex(
+          const postKey = blake2AsHex(
             consumerApi
               .createType(`(BlockNumber, ${web3NameRuntimeType}, Bytes)`, [
-                newBlockNumber,
+                blockNumber,
                 web3Name,
-                newPostText,
+                postText,
               ])
               .toHex(),
           )
-          const newPostEntry =
-            await consumerApi.query.postIt.posts<Option<Codec>>(newPostKey)
+          const postEntry =
+            await consumerApi.query.postIt.posts<Option<Codec>>(postKey)
           expect(
-            newPostEntry.isSome,
+            postEntry.isSome,
             "Post should successfully be stored on the chain",
           ).toBe(true)
         })
