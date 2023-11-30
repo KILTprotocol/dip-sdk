@@ -1,0 +1,36 @@
+name: Lint and Build
+
+on:
+  push:
+    branches:
+      - "main"
+    paths:
+      - "**.ts"
+  pull_request:
+    branches:
+      - "**"
+
+jobs:
+  lint-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download source
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: ".nvmrc"
+          cache: "yarn"
+      - name: Install dependencies
+        run: yarn install
+      - name: Lint
+        run: yarn lint
+      - name: Check dependency duplication
+        run: if ! yarn dedupe --check; then echo "::warning ::Dependencies may be deduplicated"; fi;
+      - name: Check versioning
+        run: yarn version check
+      - name: Try build for CJS and ESM
+        run: yarn build

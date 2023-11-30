@@ -240,7 +240,7 @@ describe("V0", () => {
             ...testConfig,
             call: consumerApi.tx.postIt.post(postText).method as Call,
             // Set explicit block number for the DIP proof
-            providerBlockHeight: lastTestSetupProviderBlockNumber
+            providerBlockHeight: lastTestSetupProviderBlockNumber,
           }
 
           const crossChainTx =

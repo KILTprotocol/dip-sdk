@@ -24,4 +24,4 @@ cjs
 .vscode
 
 # Tests
-.env
+.env.*
