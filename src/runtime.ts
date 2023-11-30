@@ -5,9 +5,7 @@
  * found in the LICENSE file in the root directory of this source tree.
  */
 
-import type {
-  DefinitionsCall,
-} from "@polkadot/types/types"
+import type { DefinitionsCall } from "@polkadot/types/types"
 
 export const dipProviderCalls: DefinitionsCall = {
   DipProvider: [
