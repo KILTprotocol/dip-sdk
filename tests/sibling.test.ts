@@ -46,6 +46,10 @@ const providerAndConsumerSudoKeypair = keyring.addFromUri("//Alice")
 
 Kilt.ConfigService.set({ submitTxResolveOn: Kilt.Blockchain.IS_IN_BLOCK })
 
+const relayAddress = "ws://127.0.0.1:42037"
+const providerAddress = "ws://127.0.0.1:46157"
+const consumerAddress = "ws://127.0.0.1:40171"
+
 describe("V0", () => {
   // beforeAll
   let v0Config: typeof baseConfig &
@@ -73,9 +77,9 @@ describe("V0", () => {
 
   beforeAll(async () => {
     const [relayApi, providerApi, consumerApi] = await Promise.all([
-      ApiPromise.create({ provider: new WsProvider("ws://127.0.0.1:45703") }),
-      createProviderApi("ws://127.0.0.1:46741"),
-      ApiPromise.create({ provider: new WsProvider("ws://127.0.0.1:45781") }),
+      ApiPromise.create({ provider: new WsProvider(relayAddress) }),
+      createProviderApi(providerAddress),
+      ApiPromise.create({ provider: new WsProvider(consumerAddress) }),
     ])
     Kilt.ConfigService.set({ api: providerApi })
 
@@ -179,7 +183,7 @@ describe("V0", () => {
     }
   }, 96_000)
 
-  it("Successful post on the consumer's PostIt pallet using the default latest finalized block", async () => {
+  it("Successful post on the consumer's PostIt pallet", async () => {
     const { consumerApi } = testConfig
     const postText = "Hello, world!"
     const config: DipSiblingProofInput = {
@@ -215,43 +219,41 @@ describe("V0", () => {
       postEntry.isSome,
       "Post should successfully be stored on the chain",
     ).toBe(true)
-  })
 
-  it("Successful post on the consumer's PostIt pallet using the same block as the previous operation, explicitly", async () => {
-    const { consumerApi } = testConfig
-    const postText = "Hello, world!"
-    const config: DipSiblingProofInput = {
-      ...testConfig,
-      call: consumerApi.tx.postIt.post(postText).method as Call,
+    // Try again using an explicit block number
+    const newPostText = "Hello, world 2!"
+    const newConfig: DipSiblingProofInput = {
+      ...config,
       providerBlockHeight: lastTestSetupProviderBlockNumber,
+      call: consumerApi.tx.postIt.post(newPostText).method as Call,
     }
 
-    const crossChainTx = await generateDipAuthorizedTxForSibling(config)
-    const { status } = await signAndSubmitTx(
+    const newCrossChainTx = await generateDipAuthorizedTxForSibling(newConfig)
+    const { status: newStatus } = await signAndSubmitTx(
       consumerApi,
-      crossChainTx,
+      newCrossChainTx,
       submitterKeypair,
     )
-    expect(status.isInBlock, "Status of submitted tx should be in block.").toBe(
+    expect(newStatus.isInBlock, "Status of submitted tx should be in block.").toBe(
       true,
     )
-    const blockHash = status.asInBlock
-    const blockNumber = (await consumerApi.rpc.chain.getHeader(blockHash))
+    const newBlockHash = newStatus.asInBlock
+    const newBlockNumber = (await consumerApi.rpc.chain.getHeader(newBlockHash))
       .number
     // The example PostIt pallet generates the storage key for a post by hashing (block number, submitter's username, content of the post).
-    const postKey = blake2AsHex(
+    const newPostKey = blake2AsHex(
       consumerApi
         .createType(`(BlockNumber, ${web3NameRuntimeType}, Bytes)`, [
-          blockNumber,
+          newBlockNumber,
           web3Name,
-          postText,
+          newPostText,
         ])
         .toHex(),
     )
-    const postEntry =
-      await consumerApi.query.postIt.posts<Option<Codec>>(postKey)
+    const newPostEntry =
+      await consumerApi.query.postIt.posts<Option<Codec>>(newPostKey)
     expect(
-      postEntry.isSome,
+      newPostEntry.isSome,
       "Post should successfully be stored on the chain",
     ).toBe(true)
   })

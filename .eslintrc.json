@@ -11,13 +11,19 @@
     "plugin:import/recommended",
     "prettier"
   ],
-  "ignorePatterns": ["**/*.d.ts", "**/*.js"],
+  "ignorePatterns": [
+    "**/*.d.ts",
+    "**/*.js"
+  ],
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
     "ecmaVersion": 2018,
     "sourceType": "module"
   },
-  "plugins": ["@typescript-eslint", "license-header"],
+  "plugins": [
+    "@typescript-eslint",
+    "license-header"
+  ],
   "rules": {
     "no-constant-condition": [
       "error",
@@ -28,7 +34,12 @@
     "no-console": [
       "error",
       {
-        "allow": ["warn", "error", "info", "debug"]
+        "allow": [
+          "warn",
+          "error",
+          "info",
+          "debug"
+        ]
       }
     ],
     "@typescript-eslint/ban-ts-comment": [
@@ -58,12 +69,22 @@
         "args": "none"
       }
     ],
-    "@typescript-eslint/prefer-for-of": ["error"],
+    "@typescript-eslint/prefer-for-of": [
+      "error"
+    ],
     // "@typescript-eslint/prefer-optional-chain": ["error"],
-    "@typescript-eslint/prefer-ts-expect-error": ["error"],
-    "license-header/header": ["error", "./license-header.js"],
+    "@typescript-eslint/prefer-ts-expect-error": [
+      "error"
+    ],
+    "license-header/header": [
+      "error",
+      "./license-header.js"
+    ],
     "import/no-unresolved": "off",
-    "import/extensions": ["error", "ignorePackages"],
+    "import/extensions": [
+      "error",
+      "ignorePackages"
+    ],
     "import/newline-after-import": [
       "error",
       {
@@ -77,12 +98,17 @@
           "builtin",
           "external",
           "internal",
-          ["index", "parent", "sibling"],
+          [
+            "index",
+            "sibling"
+          ],
           "object",
           "type"
         ],
         "newlines-between": "always",
-        "pathGroupsExcludedImportTypes": ["builtin"],
+        "pathGroupsExcludedImportTypes": [
+          "builtin"
+        ],
         "alphabetize": {
           "order": "asc",
           "caseInsensitive": true

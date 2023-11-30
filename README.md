@@ -21,3 +21,19 @@ YARN:
 ```
 yarn add @kiltprotocol/dip-sdk
 ```
+
+## End-to-end testing
+
+The end-to-end testing use a Zombienet-based setup with a Kubernetes provider.
+Hence, a Kubernetes cluster, e.g., [minikube](https://minikube.sigs.k8s.io/docs/start/) must be installed on the machine where the tests are to be executed.
+For more information on how to set up the machine to spawn Zombienet-based network, please refer to the [official Zombienet repository](https://github.com/paritytech/zombienet).
+
+### Test execution
+
+Test execution requires the following steps:
+
+1. Switch to the expected Node version with `nvm use`
+2. Install the repo dependencies with `yarn install`
+3. Spin up the Zombienet network with `yarn test:e2e:deploy`.
+4. Once the network deployment is complete, change the address for relaychain, provider, and consumer parachains in the test files within the `tests/*.test.ts` to point to the `relay-alice`, `provider-alice`, and `consumer-alice` nodes.
+5. Run the end-to-end tests with `yarn test:e2e`.
