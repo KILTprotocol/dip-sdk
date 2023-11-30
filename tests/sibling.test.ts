@@ -11,13 +11,17 @@ import * as Kilt from "@kiltprotocol/sdk-js"
 import { ApiPromise, WsProvider } from "@polkadot/api"
 import { blake2AsHex } from "@polkadot/util-crypto"
 import { BN } from "bn.js"
-import { beforeAll, describe, it, expect, beforeEach } from "vitest"
+import dotenv from "dotenv"
+import { beforeAll, describe, it, expect } from "vitest"
 
-import { createProviderApi, signAndSubmitTx } from "./utils.js"
+import {
+  createProviderApi,
+  signAndSubmitTx,
+  withCrossModuleSystemImport,
+} from "./utils.js"
 
-
-import type { DipSiblingProofInput } from "../src/index.js"
 import type { GetStoreTxSignCallback, Web3Name } from "@kiltprotocol/did"
+import type { DipSiblingProofInput } from "@kiltprotocol/dip-sdk"
 import type {
   DidDocument,
   KiltAddress,
@@ -27,7 +31,7 @@ import type { Option } from "@polkadot/types/codec"
 import type { Call } from "@polkadot/types/interfaces"
 import type { Codec } from "@polkadot/types/types"
 
-import { generateDipAuthorizedTxForSibling } from "../src/index.js"
+dotenv.config({ path: ".env.test" })
 
 const baseConfig: Pick<
   DipSiblingProofInput,
@@ -48,9 +52,9 @@ const providerAndConsumerSudoKeypair = keyring.addFromUri("//Alice")
 
 Kilt.ConfigService.set({ submitTxResolveOn: Kilt.Blockchain.IS_IN_BLOCK })
 
-const relayAddress = "ws://127.0.0.1:33925"
-const providerAddress = "ws://127.0.0.1:45931"
-const consumerAddress = "ws://127.0.0.1:45279"
+const relayAddress = process.env["RELAY_ADDRESS"] as string
+const providerAddress = process.env["PROVIDER_ADDRESS"] as string
+const consumerAddress = process.env["CONSUMER_ADDRESS"] as string
 
 describe("V0", () => {
   // beforeAll
@@ -58,23 +62,6 @@ describe("V0", () => {
     Pick<
       DipSiblingProofInput,
       "consumerApi" | "proofVersion" | "providerApi" | "relayApi"
-    >
-
-  // beforeEach
-  let submitterKeypair: Kilt.KeyringPair
-  let did: DidDocument
-  let web3Name: Web3Name
-  let didKeypair: Kilt.KeyringPair
-  let lastTestSetupProviderBlockNumber: number
-  let testConfig: typeof v0Config &
-    Pick<
-      DipSiblingProofInput,
-      | "didUri"
-      | "signer"
-      | "keyIds"
-      | "keyRelationship"
-      | "includeWeb3Name"
-      | "submitterAddress"
     >
 
   beforeAll(async () => {
@@ -94,169 +81,198 @@ describe("V0", () => {
     }
   })
 
-  beforeEach(async () => {
-    const { providerApi, consumerApi } = v0Config
-    const newSubmitterKeypair = keyring.addFromMnemonic(
-      Kilt.Utils.Crypto.mnemonicGenerate(),
-    )
-    const balanceTransferTxOnProviderChain = providerApi.tx.balances.transfer(
-      newSubmitterKeypair.address,
-      10 ** 15,
-    )
-    const balanceTransferTxOnConsumerChain = consumerApi.tx.balances.transfer(
-      newSubmitterKeypair.address,
-      10 ** 15,
-    )
-    await Promise.all([
-      Kilt.Blockchain.signAndSubmitTx(
-        balanceTransferTxOnProviderChain,
-        providerAndConsumerSudoKeypair,
-      ),
-      balanceTransferTxOnConsumerChain.signAndSend(
-        providerAndConsumerSudoKeypair,
-      ),
-    ])
-    const newDidKeypair = keyring.addFromMnemonic(
-      Kilt.Utils.Crypto.mnemonicGenerate(),
-    )
-    const newLightDid = Kilt.Did.createLightDidDocument({
-      // @ts-expect-error We know that the type is an "sr25519"
-      authentication: [{ ...newDidKeypair }],
-    })
-    const newFullDidUri = Kilt.Did.getFullDidUri(newLightDid.uri)
-    const signCallback: GetStoreTxSignCallback = async ({ data }) => ({
-      signature: await newDidKeypair.sign(data),
-      keyType: newDidKeypair.type as VerificationKeyType,
-    })
-    const didCreationTx = await Kilt.Did.getStoreTx(
-      newLightDid,
-      newSubmitterKeypair.address as KiltAddress,
-      signCallback,
-    )
-    const newWeb3Name = Kilt.Utils.UUID.generate().substring(2, 25)
-    const web3NameTx = await Kilt.Did.authorizeTx(
-      newFullDidUri,
-      providerApi.tx.web3Names.claim(newWeb3Name),
-      signCallback,
-      newSubmitterKeypair.address as KiltAddress,
-      { txCounter: new BN(1) },
-    )
-    const commitIdentityTx = await Kilt.Did.authorizeTx(
-      newFullDidUri,
-      providerApi.tx.dipProvider.commitIdentity(
-        Kilt.Did.toChain(newFullDidUri),
-        0,
-      ),
-      signCallback,
-      newSubmitterKeypair.address as KiltAddress,
-      { txCounter: new BN(2) },
-    )
-    const batchedTx = providerApi.tx.utility.batchAll([
-      didCreationTx,
-      web3NameTx,
-      commitIdentityTx,
-    ])
-    await Kilt.Blockchain.signAndSubmitTx(batchedTx, newSubmitterKeypair, {
-      resolveOn: Kilt.Blockchain.IS_FINALIZED,
-    })
-    // FIXME: Timeout needed since it seems `.getFinalizedHead()` still returns the previous block number as the latest finalized, even if we wait for finalization above. This results in invalid storage proofs.
-    await setTimeout(12_000)
-    lastTestSetupProviderBlockNumber = (
-      await providerApi.query.system.number()
-    ).toNumber()
-    const newFullDid = (await Kilt.Did.resolve(newFullDidUri))
-      ?.document as DidDocument
-    submitterKeypair = newSubmitterKeypair
-    did = newFullDid
-    web3Name = newWeb3Name
-    didKeypair = newDidKeypair
+  describe("CJS + ESM", () => {
+    // beforeAll
+    let submitterKeypair: Kilt.KeyringPair
+    let did: DidDocument
+    let web3Name: Web3Name
+    let didKeypair: Kilt.KeyringPair
+    let lastTestSetupProviderBlockNumber: number
+    let testConfig: typeof v0Config &
+      Pick<
+        DipSiblingProofInput,
+        | "didUri"
+        | "signer"
+        | "keyIds"
+        | "keyRelationship"
+        | "includeWeb3Name"
+        | "submitterAddress"
+      >
 
-    testConfig = {
-      ...v0Config,
-      didUri: did.uri,
-      signer: async ({ data }) => ({
-        signature: await didKeypair.sign(data),
-        keyType: didKeypair.type as VerificationKeyType,
-      }),
-      keyIds: [did.authentication[0].id],
-      keyRelationship: "authentication",
-      includeWeb3Name: true,
-      submitterAddress: submitterKeypair.address,
-    }
-  }, 96_000)
+    beforeAll(async () => {
+      const { providerApi, consumerApi } = v0Config
+      const newSubmitterKeypair = keyring.addFromMnemonic(
+        Kilt.Utils.Crypto.mnemonicGenerate(),
+      )
+      const balanceTransferTxOnProviderChain = providerApi.tx.balances.transfer(
+        newSubmitterKeypair.address,
+        10 ** 15,
+      )
+      const balanceTransferTxOnConsumerChain = consumerApi.tx.balances.transfer(
+        newSubmitterKeypair.address,
+        10 ** 15,
+      )
+      await Promise.all([
+        Kilt.Blockchain.signAndSubmitTx(
+          balanceTransferTxOnProviderChain,
+          providerAndConsumerSudoKeypair,
+        ),
+        balanceTransferTxOnConsumerChain.signAndSend(
+          providerAndConsumerSudoKeypair,
+        ),
+      ])
+      const newDidKeypair = keyring.addFromMnemonic(
+        Kilt.Utils.Crypto.mnemonicGenerate(),
+      )
+      const newLightDid = Kilt.Did.createLightDidDocument({
+        // @ts-expect-error We know that the type is an "sr25519"
+        authentication: [{ ...newDidKeypair }],
+      })
+      const newFullDidUri = Kilt.Did.getFullDidUri(newLightDid.uri)
+      const signCallback: GetStoreTxSignCallback = async ({ data }) => ({
+        signature: await newDidKeypair.sign(data),
+        keyType: newDidKeypair.type as VerificationKeyType,
+      })
+      const didCreationTx = await Kilt.Did.getStoreTx(
+        newLightDid,
+        newSubmitterKeypair.address as KiltAddress,
+        signCallback,
+      )
+      const newWeb3Name = Kilt.Utils.UUID.generate().substring(2, 25)
+      const web3NameTx = await Kilt.Did.authorizeTx(
+        newFullDidUri,
+        providerApi.tx.web3Names.claim(newWeb3Name),
+        signCallback,
+        newSubmitterKeypair.address as KiltAddress,
+        { txCounter: new BN(1) },
+      )
+      const commitIdentityTx = await Kilt.Did.authorizeTx(
+        newFullDidUri,
+        providerApi.tx.dipProvider.commitIdentity(
+          Kilt.Did.toChain(newFullDidUri),
+          0,
+        ),
+        signCallback,
+        newSubmitterKeypair.address as KiltAddress,
+        { txCounter: new BN(2) },
+      )
+      const batchedTx = providerApi.tx.utility.batchAll([
+        didCreationTx,
+        web3NameTx,
+        commitIdentityTx,
+      ])
+      await Kilt.Blockchain.signAndSubmitTx(batchedTx, newSubmitterKeypair, {
+        resolveOn: Kilt.Blockchain.IS_FINALIZED,
+      })
+      // FIXME: Timeout needed since it seems `.getFinalizedHead()` still returns the previous block number as the latest finalized, even if we wait for finalization above. This results in invalid storage proofs.
+      await setTimeout(12_000)
+      lastTestSetupProviderBlockNumber = (
+        await providerApi.query.system.number()
+      ).toNumber()
+      const newFullDid = (await Kilt.Did.resolve(newFullDidUri))
+        ?.document as DidDocument
+      submitterKeypair = newSubmitterKeypair
+      did = newFullDid
+      web3Name = newWeb3Name
+      didKeypair = newDidKeypair
 
-  it("Successful posts on the consumer's PostIt pallet", async () => {
-    const { consumerApi } = testConfig
-    const postText = "Hello, world!"
-    const config: DipSiblingProofInput = {
-      ...testConfig,
-      call: consumerApi.tx.postIt.post(postText).method as Call,
-    }
+      testConfig = {
+        ...v0Config,
+        didUri: did.uri,
+        signer: async ({ data }) => ({
+          signature: await didKeypair.sign(data),
+          keyType: didKeypair.type as VerificationKeyType,
+        }),
+        keyIds: [did.authentication[0].id],
+        keyRelationship: "authentication",
+        includeWeb3Name: true,
+        submitterAddress: submitterKeypair.address,
+      }
+    }, 96_000)
 
-    const crossChainTx = await generateDipAuthorizedTxForSibling(config)
-    const { status } = await signAndSubmitTx(
-      consumerApi,
-      crossChainTx,
-      submitterKeypair,
-    )
-    expect(status.isInBlock, "Status of submitted tx should be in block.").toBe(
-      true,
-    )
-    const blockHash = status.asInBlock
-    const blockNumber = (await consumerApi.rpc.chain.getHeader(blockHash))
-      .number
-    // The example PostIt pallet generates the storage key for a post by hashing (block number, submitter's username, content of the post).
-    const postKey = blake2AsHex(
-      consumerApi
-        .createType(`(BlockNumber, ${web3NameRuntimeType}, Bytes)`, [
-          blockNumber,
-          web3Name,
-          postText,
-        ])
-        .toHex(),
-    )
-    const postEntry =
-      await consumerApi.query.postIt.posts<Option<Codec>>(postKey)
-    expect(
-      postEntry.isSome,
-      "Post should successfully be stored on the chain",
-    ).toBe(true)
+    withCrossModuleSystemImport<typeof import("@kiltprotocol/dip-sdk")>(
+      "..",
+      async (DipSdk) => {
+        it("Successful posts on the consumer's PostIt pallet", async () => {
+          const { consumerApi } = testConfig
+          const postText = "Hello, world!"
+          const config: DipSiblingProofInput = {
+            ...testConfig,
+            call: consumerApi.tx.postIt.post(postText).method as Call,
+          }
 
-    // Try again using an explicit block number
-    const newPostText = "Hello, world 2!"
-    const newConfig: DipSiblingProofInput = {
-      ...config,
-      providerBlockHeight: lastTestSetupProviderBlockNumber,
-      call: consumerApi.tx.postIt.post(newPostText).method as Call,
-    }
+          const crossChainTx =
+            await DipSdk.generateDipAuthorizedTxForSibling(config)
+          const { status } = await signAndSubmitTx(
+            consumerApi,
+            crossChainTx,
+            submitterKeypair,
+          )
+          expect(
+            status.isInBlock,
+            "Status of submitted tx should be in block.",
+          ).toBe(true)
+          const blockHash = status.asInBlock
+          const blockNumber = (await consumerApi.rpc.chain.getHeader(blockHash))
+            .number
+          // The example PostIt pallet generates the storage key for a post by hashing (block number, submitter's username, content of the post).
+          const postKey = blake2AsHex(
+            consumerApi
+              .createType(`(BlockNumber, ${web3NameRuntimeType}, Bytes)`, [
+                blockNumber,
+                web3Name,
+                postText,
+              ])
+              .toHex(),
+          )
+          const postEntry =
+            await consumerApi.query.postIt.posts<Option<Codec>>(postKey)
+          expect(
+            postEntry.isSome,
+            "Post should successfully be stored on the chain",
+          ).toBe(true)
 
-    const newCrossChainTx = await generateDipAuthorizedTxForSibling(newConfig)
-    const { status: newStatus } = await signAndSubmitTx(
-      consumerApi,
-      newCrossChainTx,
-      submitterKeypair,
+          // Try again using an explicit block number, should yield the same result.
+          const newPostText = "Hello, world 2!"
+          const newConfig: DipSiblingProofInput = {
+            ...config,
+            providerBlockHeight: lastTestSetupProviderBlockNumber,
+            call: consumerApi.tx.postIt.post(newPostText).method as Call,
+          }
+
+          const newCrossChainTx =
+            await DipSdk.generateDipAuthorizedTxForSibling(newConfig)
+          const { status: newStatus } = await signAndSubmitTx(
+            consumerApi,
+            newCrossChainTx,
+            submitterKeypair,
+          )
+          expect(
+            newStatus.isInBlock,
+            "Status of submitted tx should be in block.",
+          ).toBe(true)
+          const newBlockHash = newStatus.asInBlock
+          const newBlockNumber = (
+            await consumerApi.rpc.chain.getHeader(newBlockHash)
+          ).number
+          // The example PostIt pallet generates the storage key for a post by hashing (block number, submitter's username, content of the post).
+          const newPostKey = blake2AsHex(
+            consumerApi
+              .createType(`(BlockNumber, ${web3NameRuntimeType}, Bytes)`, [
+                newBlockNumber,
+                web3Name,
+                newPostText,
+              ])
+              .toHex(),
+          )
+          const newPostEntry =
+            await consumerApi.query.postIt.posts<Option<Codec>>(newPostKey)
+          expect(
+            newPostEntry.isSome,
+            "Post should successfully be stored on the chain",
+          ).toBe(true)
+        })
+      },
     )
-    expect(newStatus.isInBlock, "Status of submitted tx should be in block.").toBe(
-      true,
-    )
-    const newBlockHash = newStatus.asInBlock
-    const newBlockNumber = (await consumerApi.rpc.chain.getHeader(newBlockHash))
-      .number
-    // The example PostIt pallet generates the storage key for a post by hashing (block number, submitter's username, content of the post).
-    const newPostKey = blake2AsHex(
-      consumerApi
-        .createType(`(BlockNumber, ${web3NameRuntimeType}, Bytes)`, [
-          newBlockNumber,
-          web3Name,
-          newPostText,
-        ])
-        .toHex(),
-    )
-    const newPostEntry =
-      await consumerApi.query.postIt.posts<Option<Codec>>(newPostKey)
-    expect(
-      newPostEntry.isSome,
-      "Post should successfully be stored on the chain",
-    ).toBe(true)
   })
 }, 60_000)

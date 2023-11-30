@@ -8,6 +8,7 @@
 import * as Kilt from "@kiltprotocol/sdk-js"
 import { didCalls, types } from "@kiltprotocol/type-definitions"
 import { ApiPromise, SubmittableResult, WsProvider } from "@polkadot/api"
+import { describe } from "vitest"
 
 import type { KeyringPair, SubmittableExtrinsic } from "@kiltprotocol/types"
 import type {
@@ -120,7 +121,7 @@ export async function createProviderApi(address: string): Promise<ApiPromise> {
   })
 }
 
-// Taken from the KILT SDK
+// Taken from the KILT SDK: https://github.com/KILTprotocol/sdk-js/blob/c4ab492812d19169532a399b57dd1bd013a61570/packages/chain-helpers/src/blockchain/Blockchain.ts#L179
 export async function signAndSubmitTx(
   api: ApiPromise,
   tx: SubmittableExtrinsic,
@@ -135,7 +136,7 @@ export async function signAndSubmitTx(
   return submitSignedTx(api, signedTx, opts)
 }
 
-// Taken from the KILT SDK
+// Taken from the KILT SDK: https://github.com/KILTprotocol/sdk-js/blob/c4ab492812d19169532a399b57dd1bd013a61570/packages/chain-helpers/src/blockchain/Blockchain.ts#L116
 async function submitSignedTx(
   api: ApiPromise,
   tx: SubmittableExtrinsic,
@@ -188,4 +189,28 @@ async function submitSignedTx(
     unsubscribe()
     api.off("disconnected", handleDisconnect)
   }
+}
+
+const testForBothModules = describe.each([
+  { module: "ESM", importer: async (module: string) => import(module) },
+  { module: "CJS", importer: async (module: string) => require(module) },
+])
+
+/**
+ * Loads `module` and passes the implementation to the `tests` closure.
+ * All tests defined in this closure are run twice; once using the module implementation
+ * as loaded by `require()` and once as loaded by `import()`.
+ * Note that some features, such as inline snapshots, are unavailable in these tests.
+ *
+ * @param module The module to be loaded.
+ * @param tests A function defining tests using vitest's `it` or `test`. Receives the loaded module implementation as its first argument.
+ */
+export function withCrossModuleSystemImport<mod = any>(
+  module: string,
+  tests: (imported: mod) => void | Promise<void>,
+): void {
+  return testForBothModules("$module", async ({ importer }) => {
+    const imported = await importer(module)
+    return tests(imported)
+  })
 }

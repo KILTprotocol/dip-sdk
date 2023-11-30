@@ -35,5 +35,5 @@ Test execution requires the following steps:
 1. Switch to the expected Node version with `nvm use`
 2. Install the repo dependencies with `yarn install`
 3. Spin up the Zombienet network with `yarn test:e2e:deploy`.
-4. Once the network deployment is complete, change the address for relaychain, provider, and consumer parachains in the test files within the `tests/*.test.ts` to point to the `relay-alice`, `provider-alice`, and `consumer-alice` nodes.
+4. Once the network deployment is complete, create a `.env.test` file with `RELAY_ADDRESS`, `PROVIDER_ADDRESS`, and `CONSUMER_ADDRESS` values pointing to the started nodes for relaychain, provider chain and consumer chain respectively.
 5. Run the end-to-end tests with `yarn test:e2e`.

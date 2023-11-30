@@ -244,7 +244,7 @@ export async function generateDipDidSignature({
     genesisHash,
   },
 }: DipDidSignatureOpts): Promise<DipDidSignatureRes> {
-  const blockNumber =
+  const blockNumber: number =
     blockHeight ?? ((await api.query.system.number()) as any).toNumber()
   const genesis = genesisHash ?? (await api.query.system.blockHash(0))
   const identityDetails = (
