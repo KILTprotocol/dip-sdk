@@ -18,25 +18,10 @@ import type {
   RegistryTypes,
 } from "@polkadot/types/types"
 
-const dipProviderCalls: DefinitionsCall = {
-  DipProvider: [
-    {
-      methods: {
-        generate_proof: {
-          description:
-            "Generate a Merkle proof for the DIP protocol for the specified request parameters.",
-          params: [
-            {
-              name: "request",
-              type: "DipProofRequest",
-            },
-          ],
-          type: "Result<CompleteMerkleProof, RuntimeApiDipProofError>",
-        },
-      },
-      version: 1,
-    },
-  ],
+import { dipProviderCalls } from "../src/runtime.js"
+
+const dipProviderTemplateRuntimeCalls: DefinitionsCall = {
+  ...dipProviderCalls,
   ...didCalls,
 }
 const dipTypes: RegistryTypes = {
@@ -116,7 +101,7 @@ const dipTypes: RegistryTypes = {
 export async function createProviderApi(address: string): Promise<ApiPromise> {
   return ApiPromise.create({
     provider: new WsProvider(address),
-    runtime: dipProviderCalls,
+    runtime: dipProviderTemplateRuntimeCalls,
     types: dipTypes,
   })
 }

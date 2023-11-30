@@ -9,5 +9,6 @@
  * @module @kiltprotocol/dip-sdk
  */
 
+export * from "./runtime.js"
 export * from "./sibling.js"
 export * from "./utils.js"

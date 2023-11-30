@@ -183,7 +183,7 @@ export async function generateDipIdentityProof({
   // TODO: Better way to cast this?
   const okProof = proof.asOk.toJSON() as any
 
-  return { ...okProof }
+  return okProof
 }
 
 type DipDidSignatureProviderOpts = {
@@ -245,7 +245,7 @@ export async function generateDipDidSignature({
   },
 }: DipDidSignatureOpts): Promise<DipDidSignatureRes> {
   const blockNumber: number =
-    blockHeight ?? ((await api.query.system.number()) as any).toNumber()
+    blockHeight ?? (await api.query.system.number<any>()).toNumber()
   const genesis = genesisHash ?? (await api.query.system.blockHash(0))
   const identityDetails = (
     await api.query.dipConsumer.identityEntries<Option<Codec>>(toChain(didUri))

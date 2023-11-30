@@ -51,7 +51,7 @@
     "lint": "eslint --ext .ts . && prettier -c .",
     "lint:fix": "prettier -w . && eslint --fix --ext .ts .",
     "prepublish": "yarn exec cp -f ../../LICENSE .",
-    "publish": "yarn npm publish --access=public --tolerate-republish",
+    "publish": "yarn npm publish --access=public",
     "test:e2e": "yarn build && vitest run tests",
     "test:e2e:deploy": "yarn zombienet --spawn-concurrency 3 spawn tests/zombienet/network.toml"
   },
