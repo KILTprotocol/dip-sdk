@@ -6,9 +6,9 @@
  */
 
 /**
- * @module @kiltprotocol/dip
+ * @module @kiltprotocol/dip-sdk
  */
 
-export * from "./parent.js"
+export * from "./runtime.js"
 export * from "./sibling.js"
 export * from "./utils.js"

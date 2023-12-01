@@ -77,7 +77,7 @@
           "builtin",
           "external",
           "internal",
-          ["index", "parent", "sibling"],
+          ["index", "sibling"],
           "object",
           "type"
         ],

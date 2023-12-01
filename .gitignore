@@ -22,3 +22,6 @@ cjs
 # VSCode
 
 .vscode
+
+# Tests
+.env.*

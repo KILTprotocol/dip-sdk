@@ -8,7 +8,6 @@
 import { toChain } from "@kiltprotocol/did"
 import { ApiPromise } from "@polkadot/api"
 import { u8aToHex } from "@polkadot/util"
-import { ObjectBuilder } from "typescript-object-builder"
 
 import {
   defaultValues,
@@ -53,26 +52,7 @@ export type DipSiblingProofInput = {
 }
 
 /**
- * Return a new instance of the builder to generate DIP proofs for a sibling parachain.
- *
- * @returns A fresh instance of an [[ObjectBuilder]].
- */
-export function dipSiblingProofBuilder(): ObjectBuilder {
-  return ObjectBuilder.new<DipSiblingProofInput>()
-}
-
-/**
  * Generate a submittable extrinsic for the provided call which includes a complete DIP proof according to the parameters provided, to be used on a consumer chain of which the provider chain is a sibling.
- *
- * Parameters can be provided directly or can be combined on the builder.
- *
- * @example
- * const builder = dipSiblingProofBuilder()
- * builder.with(...).with(...).with(...)
- * const params = builder.build()
- * const proof = generateDipProofForSibling(params)
- *
- *
  * @param params The DIP proof params.
  * @param params.call The [[Call]] on the consumer chain that requires a DIP origin.
  * @param params.consumerApi The [[ApiPromise]] instance for the consumer chain.
@@ -118,7 +98,7 @@ export async function generateDipAuthorizedTxForSibling({
   linkedAccounts = defaultValues.linkedAccounts,
 }: DipSiblingProofInput): Promise<SubmittableExtrinsic> {
   const {
-    proof: providerStateRootProof,
+    proof: { proof: providerStateRootProof },
     providerBlockHeight: providerStateRootProofProviderBlockHeight,
     relayBlockHeight: providerStateRootProofRelayBlockHeight,
   } = await generateProviderStateRootProof({
@@ -132,7 +112,9 @@ export async function generateDipAuthorizedTxForSibling({
     providerStateRootProofProviderBlockHeight - 1,
   )
 
-  const { proof: dipCommitmentProof } = await generateDipCommitmentProof({
+  const {
+    proof: { proof: dipCommitmentProof },
+  } = await generateDipCommitmentProof({
     didUri,
     providerApi,
     providerBlockHash: dipRootProofBlockHash,
@@ -170,25 +152,29 @@ export async function generateDipAuthorizedTxForSibling({
     },
   })
 
-  return consumerApi.tx.dipConsumer.dispatchAs(toChain(didUri), {
-    [`V${proofVersion}`]: {
-      paraStateRoot: {
-        relayBlockHeight: providerStateRootProofRelayBlockHeight,
-        proof: providerStateRootProof,
-      },
-      dipIdentityCommitment: dipCommitmentProof,
-      did: {
-        leaves: {
-          blinded: dipIdentityProof.blinded,
-          revealed: dipIdentityProof.revealed,
+  return consumerApi.tx.dipConsumer.dispatchAs(
+    toChain(didUri),
+    {
+      [`V${proofVersion}`]: {
+        paraStateRoot: {
+          relayBlockHeight: providerStateRootProofRelayBlockHeight,
+          proof: providerStateRootProof,
         },
-        signature: {
-          signature: {
-            [didSignatureType]: u8aToHex(didSignature),
+        dipIdentityCommitment: dipCommitmentProof,
+        did: {
+          leaves: {
+            blinded: dipIdentityProof.blinded,
+            revealed: dipIdentityProof.revealed,
           },
-          blockNumber: didSignatureBlockNumber,
+          signature: {
+            signature: {
+              [didSignatureType]: u8aToHex(didSignature),
+            },
+            blockNumber: didSignatureBlockNumber,
+          },
         },
       },
     },
-  })
+    call,
+  )
 }

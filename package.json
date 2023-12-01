@@ -2,22 +2,26 @@
   "bugs": "https://github.com/KILTprotocol/dip-sdk/issues",
   "description": "An SDK to help integration of the KILT Decentralized Identity Provider (DIP) protocol using KILT as an Identity Provider.",
   "dependencies": {
-    "@kiltprotocol/did": "0.34.0-dip-1",
-    "@kiltprotocol/types": "0.34.0-dip-1",
+    "@kiltprotocol/did": "0.34.0-dip-2",
+    "@kiltprotocol/types": "0.34.0-dip-2",
     "@polkadot/api": "^10.10.1",
-    "@polkadot/util": "^12.5.1",
-    "typescript-object-builder": "^0.3.0"
+    "@polkadot/util": "^12.5.1"
   },
   "devDependencies": {
+    "@kiltprotocol/sdk-js": "0.34.0-dip-2",
+    "@types/node": "^20.9.4",
     "@typescript-eslint/eslint-plugin": "^6.2.0",
     "@typescript-eslint/parser": "^6.2.0",
+    "@zombienet/cli": "^1.3.82",
+    "bn.js": "^5.2.1",
+    "dotenv": "^16.3.1",
     "eslint": "^8.45.0",
     "eslint-config-prettier": "^8.9.0",
     "eslint-plugin-import": "^2.27.5",
     "eslint-plugin-license-header": "^0.6.0",
     "prettier": "^3.0.0",
     "rimraf": "^5.0.1",
-    "typescript": "^5.1.6",
+    "typescript": "^5.3.2",
     "vitest": "^0.33.0"
   },
   "engines": {
@@ -41,14 +45,15 @@
   "scripts": {
     "build": "yarn build:cjs && yarn build:esm",
     "build:cjs": "run -T tsc -p tsconfig.cjs.json && echo '{\"type\": \"commonjs\"}' > ./dist/cjs/package.json",
-    "build:esm": "run -T tsc -p tsconfig.json && echo '{\"type\": \"module\"}' > ./dist/esm/package.json",
-    "check": "tsc -p tsconfig.check.json",
+    "build:esm": "run -T tsc -p tsconfig.esm.json && echo '{\"type\": \"module\"}' > ./dist/esm/package.json",
+    "check": "tsc -p tsconfig.json",
     "clean": "yarn rimraf -g */{cjs,esm}",
     "lint": "eslint --ext .ts . && prettier -c .",
     "lint:fix": "prettier -w . && eslint --fix --ext .ts .",
-    "test:e2e": "vitest run tests",
     "prepublish": "yarn exec cp -f ../../LICENSE .",
-    "publish": "yarn npm publish --access=public --tolerate-republish"
+    "publish": "yarn npm publish --access=public",
+    "test:e2e": "yarn build && vitest run tests",
+    "test:e2e:deploy": "yarn zombienet --spawn-concurrency 3 spawn tests/zombienet/network.toml"
   },
   "stableVersion": "0.0.0",
   "type": "module",
