@@ -39,7 +39,7 @@ The Zombienet deployment relies on a number of environment variables, which are:
 - `CONSUMER_IMAGE`: The Docker image for the DIP consumer nodes.
 - `CONSUMER_ALICE_RPC`: The RPC port for the `consumer-alice` consumer node.
 
-A series of default values is sourced from the `tests/.env.test` file.
+A series of default values is sourced from either the `tests/dip-provider-template-dip-consumer-template/.env.develop.test` or `tests/peregrine-dip-consumer-template/.env.develop.test` file to spin up either a DIP Template Provider <-> DIP Template Consumer network or a Peregrine <-> DIP Template Consumer network.
 
 ### Test execution
 
