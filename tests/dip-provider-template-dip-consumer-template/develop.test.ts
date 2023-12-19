@@ -31,7 +31,9 @@ import {
   withCrossModuleSystemImport,
 } from "../utils.js"
 
-dotenv.config({ path: "tests/dip-provider-template-dip-consumer-template/.env.develop.test" })
+dotenv.config({
+  path: "tests/dip-provider-template-dip-consumer-template/.env.develop.test",
+})
 
 const baseConfig: Pick<
   DipSiblingProofInput,
@@ -108,11 +110,11 @@ describe("V0", () => {
       const consumerUnit = "0".repeat(13)
       const balanceTransferTxOnProviderChain = providerApi.tx.balances.transfer(
         newSubmitterKeypair.address,
-        `1${providerUnit}`
+        `1${providerUnit}`,
       )
       const balanceTransferTxOnConsumerChain = consumerApi.tx.balances.transfer(
         newSubmitterKeypair.address,
-        `1${consumerUnit}`
+        `1${consumerUnit}`,
       )
       await Promise.all([
         Kilt.Blockchain.signAndSubmitTx(
@@ -220,11 +222,12 @@ describe("V0", () => {
           // The example PostIt pallet generates the storage key for a post by hashing (block number, submitter's username, content of the post).
           const postKey = blake2AsHex(
             consumerApi
-              .createType(`(${config.blockNumberRuntimeType as string}, ${web3NameRuntimeType}, Bytes)`, [
-                blockNumber,
-                web3Name,
-                postText,
-              ])
+              .createType(
+                `(${
+                  config.blockNumberRuntimeType as string
+                }, ${web3NameRuntimeType}, Bytes)`,
+                [blockNumber, web3Name, postText],
+              )
               .toHex(),
           )
           const postEntry =
@@ -262,11 +265,12 @@ describe("V0", () => {
           // The example PostIt pallet generates the storage key for a post by hashing (block number, submitter's username, content of the post).
           const postKey = blake2AsHex(
             consumerApi
-              .createType(`(${config.blockNumberRuntimeType as string}, ${web3NameRuntimeType}, Bytes)`, [
-                blockNumber,
-                web3Name,
-                postText,
-              ])
+              .createType(
+                `(${
+                  config.blockNumberRuntimeType as string
+                }, ${web3NameRuntimeType}, Bytes)`,
+                [blockNumber, web3Name, postText],
+              )
               .toHex(),
           )
           const postEntry =
