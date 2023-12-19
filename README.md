@@ -48,6 +48,6 @@ Test execution requires the following steps:
 1. Switch to the expected Node version with `nvm use`.
 2. Install the repo dependencies with `yarn install`.
 3. Set up the environment variables as explained above.
-4. Spin up the Zombienet network with `test:e2e:start-network`.
-5. In a new shell session, run the end-to-end tests with `yarn test:e2e`.
+4. Spin up the Zombienet network with `test:e2e:start-network:peregrine-provider:develop` or `test:e2e:start-network:dip-template-provider:develop`.
+5. In a new shell session, run the end-to-end tests with `yarn test:e2e:peregrine-provider` or `yarn test:e2e:dip-template-provider`.
 6. [OPTIONAL] Tear down the network by killing the process started at step 4.
