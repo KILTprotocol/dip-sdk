@@ -14,6 +14,7 @@ import type {
   DidKey,
   VerificationKeyRelationship,
   VerificationKeyType,
+  BN,
 } from "@kiltprotocol/types"
 import type { ApiPromise } from "@polkadot/api"
 import type { KeyringPair } from "@polkadot/keyring/types"
@@ -33,12 +34,12 @@ type ProviderStateRootProofOpts = {
   providerApi: ApiPromise
   relayApi: ApiPromise
   // Optional
-  providerBlockHeight?: number
+  providerBlockHeight?: BN
 }
 type ProviderStateRootProofRes = {
   proof: ReadProof
-  providerBlockHeight: number
-  relayBlockHeight: number
+  providerBlockHeight: BN
+  relayBlockHeight: BN
 }
 /**
  * Generate a state proof that proofs the head of the specified parachain.
@@ -66,7 +67,7 @@ export async function generateProviderStateRootProof({
       await providerApi.rpc.chain.getFinalizedHead()
     const providerLastFinalizedBlockHeight = await providerApi.rpc.chain
       .getHeader(providerLastFinalizedBlockHash)
-      .then((h) => h.number.toNumber())
+      .then((h) => h.number.toBn())
     return [providerLastFinalizedBlockHeight, providerLastFinalizedBlockHash]
   })()
   const providerApiAtBlock = await providerApi.at(providerBlockHash)
@@ -199,7 +200,7 @@ type DipDidSignatureConsumerOpts = {
   identityDetailsRuntimeType: string
   submitterAddress: KeyringPair["address"]
   // Optional
-  blockHeight?: number
+  blockHeight?: BN
   genesisHash?: Hash
 }
 type DipDidSignatureOpts = {
@@ -207,7 +208,7 @@ type DipDidSignatureOpts = {
   provider: DipDidSignatureProviderOpts
 }
 type DipDidSignatureRes = {
-  blockNumber: number
+  blockNumber: BN
   signature: Uint8Array
   type: VerificationKeyType
 }
@@ -244,8 +245,8 @@ export async function generateDipDidSignature({
     genesisHash,
   },
 }: DipDidSignatureOpts): Promise<DipDidSignatureRes> {
-  const blockNumber: number =
-    blockHeight ?? (await api.query.system.number<any>()).toNumber()
+  const blockNumber: BN =
+    blockHeight ?? (await api.query.system.number<any>()).toBn()
   const genesis = genesisHash ?? (await api.query.system.blockHash(0))
   const identityDetails = (
     await api.query.dipConsumer.identityEntries<Option<Codec>>(toChain(didUri))

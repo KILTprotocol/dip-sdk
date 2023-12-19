@@ -9,15 +9,10 @@ import { setTimeout } from "timers/promises"
 
 import * as Kilt from "@kiltprotocol/sdk-js"
 import { ApiPromise, WsProvider } from "@polkadot/api"
+import { BN } from "@polkadot/util"
 import { blake2AsHex } from "@polkadot/util-crypto"
-import { BN } from "bn.js"
 import dotenv from "dotenv"
 import { beforeAll, describe, it, expect } from "vitest"
-
-import {
-  signAndSubmitTx,
-  withCrossModuleSystemImport,
-} from "../utils.js"
 
 import type { GetStoreTxSignCallback, Web3Name } from "@kiltprotocol/did"
 import type { DipSiblingProofInput } from "@kiltprotocol/dip-sdk"
@@ -30,6 +25,11 @@ import type { Option } from "@polkadot/types/codec"
 import type { Call } from "@polkadot/types/interfaces"
 import type { Codec } from "@polkadot/types/types"
 
+import {
+  signAndSubmitTx,
+  withCrossModuleSystemImport,
+} from "../utils.js"
+
 dotenv.config({ path: "tests/peregrine-dip-consumer-template/.env.develop.test" })
 
 const baseConfig: Pick<
@@ -39,7 +39,7 @@ const baseConfig: Pick<
   | "identityDetailsRuntimeType"
 > = {
   accountIdRuntimeType: "AccountId32",
-  blockNumberRuntimeType: "u32",
+  blockNumberRuntimeType: "u64",
   identityDetailsRuntimeType: "Option<u128>",
 }
 const web3NameRuntimeType = "Text"
@@ -86,7 +86,7 @@ describe("V0", () => {
     let did: DidDocument
     let web3Name: Web3Name
     let didKeypair: Kilt.KeyringPair
-    let lastTestSetupProviderBlockNumber: number
+    let lastTestSetupProviderBlockNumber: BN
     let testConfig: typeof v0Config &
       Pick<
         DipSiblingProofInput,
@@ -113,7 +113,6 @@ describe("V0", () => {
         newSubmitterKeypair.address,
         `1${consumerUnit}`
       )
-      console.log('Before')
       await Promise.all([
         Kilt.Blockchain.signAndSubmitTx(
           balanceTransferTxOnProviderChain,
@@ -123,7 +122,6 @@ describe("V0", () => {
           providerAndConsumerSudoKeypair,
         ),
       ])
-      console.log('After')
       const newDidKeypair = keyring.addFromMnemonic(
         Kilt.Utils.Crypto.mnemonicGenerate(),
       )
@@ -142,7 +140,6 @@ describe("V0", () => {
         signCallback,
       )
       const newWeb3Name = Kilt.Utils.UUID.generate().substring(2, 25)
-      console.log('AAAAA')
       const web3NameTx = await Kilt.Did.authorizeTx(
         newFullDidUri,
         providerApi.tx.web3Names.claim(newWeb3Name),
@@ -150,7 +147,6 @@ describe("V0", () => {
         newSubmitterKeypair.address as KiltAddress,
         { txCounter: new BN(1) },
       )
-      console.log('BBBBB')
       const commitIdentityTx = await Kilt.Did.authorizeTx(
         newFullDidUri,
         providerApi.tx.dipProvider.commitIdentity(
@@ -161,7 +157,6 @@ describe("V0", () => {
         newSubmitterKeypair.address as KiltAddress,
         { txCounter: new BN(2) },
       )
-      console.log('CCCCC')
       const batchedTx = providerApi.tx.utility.batchAll([
         didCreationTx,
         web3NameTx,
@@ -170,12 +165,11 @@ describe("V0", () => {
       await Kilt.Blockchain.signAndSubmitTx(batchedTx, newSubmitterKeypair, {
         resolveOn: Kilt.Blockchain.IS_FINALIZED,
       })
-      console.log('DDDDD')
       // FIXME: Timeout needed since it seems `.getFinalizedHead()` still returns the previous block number as the latest finalized, even if we wait for finalization above. This results in invalid storage proofs.
       await setTimeout(12_000)
       lastTestSetupProviderBlockNumber = (
         await providerApi.query.system.number()
-      ).toNumber()
+      ).toBn()
       const newFullDid = (await Kilt.Did.resolve(newFullDidUri))
         ?.document as DidDocument
       submitterKeypair = newSubmitterKeypair
@@ -225,7 +219,7 @@ describe("V0", () => {
           // The example PostIt pallet generates the storage key for a post by hashing (block number, submitter's username, content of the post).
           const postKey = blake2AsHex(
             consumerApi
-              .createType(`(BlockNumber, ${web3NameRuntimeType}, Bytes)`, [
+              .createType(`(${config.blockNumberRuntimeType as string}, ${web3NameRuntimeType}, Bytes)`, [
                 blockNumber,
                 web3Name,
                 postText,
@@ -267,7 +261,7 @@ describe("V0", () => {
           // The example PostIt pallet generates the storage key for a post by hashing (block number, submitter's username, content of the post).
           const postKey = blake2AsHex(
             consumerApi
-              .createType(`(BlockNumber, ${web3NameRuntimeType}, Bytes)`, [
+              .createType(`(${config.blockNumberRuntimeType as string}, ${web3NameRuntimeType}, Bytes)`, [
                 blockNumber,
                 web3Name,
                 postText,

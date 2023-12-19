@@ -24,6 +24,7 @@ import type {
   SubmittableExtrinsic,
   DidKey,
   SignExtrinsicCallback,
+  BN,
 } from "@kiltprotocol/types"
 import type { KeyringPair } from "@polkadot/keyring/types"
 import type { Call, Hash } from "@polkadot/types/interfaces"
@@ -40,9 +41,9 @@ export type DipSiblingProofInput = {
   submitterAddress: KeyringPair["address"]
   keyRelationship: VerificationKeyRelationship
   // Optional, retrieved from chain otherwise
-  blockHeight?: number
+  blockHeight?: BN
   genesisHash?: Hash
-  providerBlockHeight?: number
+  providerBlockHeight?: BN
   // With defaults
   accountIdRuntimeType?: string
   blockNumberRuntimeType?: string
@@ -109,7 +110,7 @@ export async function generateDipAuthorizedTxForSibling({
 
   // Proof of commitment must be generated with the state root at the block before the last one finalized.
   const dipRootProofBlockHash = await providerApi.rpc.chain.getBlockHash(
-    providerStateRootProofProviderBlockHeight - 1,
+    providerStateRootProofProviderBlockHeight.subn(1),
   )
 
   const {
