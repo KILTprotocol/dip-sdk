@@ -50,7 +50,6 @@
     "clean": "yarn rimraf -g */{cjs,esm}",
     "lint": "eslint --ext .ts . && prettier -c .",
     "lint:fix": "prettier -w . && eslint --fix --ext .ts .",
-    "prepublish": "yarn exec cp -f ../../LICENSE .",
     "publish": "yarn npm publish --access=public",
     "test:e2e:peregrine-provider": "yarn build && vitest run tests/peregrine-dip-consumer-template",
     "test:e2e:dip-template-provider": "yarn build && vitest run tests/dip-provider-template-dip-consumer-template",
