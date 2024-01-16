@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["src/**/*"],
+  "typedocOptions": {
+    "entryPointStrategy": "resolve",
+    "entryPoints": ["src/runtime.ts", "src/sibling.ts", "src/utils.ts"],
+    "out": "docs/api",
+    "theme": "default",
+    "exclude": [
+      "**/*spec.ts",
+      "**/__mocks__/**",
+      "**/tests/**",
+      "**/*.js",
+      "**/node_modules/**"
+    ],
+    "excludeExternals": true,
+    "excludePrivate": true,
+    "hideGenerator": true,
+    "name": "API Documentation",
+    "readme": "README.md"
+  }
+}
