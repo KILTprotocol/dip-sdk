@@ -30,12 +30,18 @@ export const defaultValues = {
   linkedAccounts: [],
 }
 
+/**
+ * The options object provided when generating a Provider state proof.
+ */
 type ProviderStateRootProofOpts = {
   providerApi: ApiPromise
   relayApi: ApiPromise
   // Optional
   providerBlockHeight?: BN
 }
+/**
+ * The response object containing the provider state root proof.
+ */
 type ProviderStateRootProofRes = {
   proof: ReadProof
   providerBlockHeight: BN
@@ -92,12 +98,18 @@ export async function generateProviderStateRootProof({
   }
 }
 
+/**
+ * The options object provided when generating a DIP commitment proof.
+ */
 type DipCommitmentProofOpts = {
   didUri: DidUri
   providerApi: ApiPromise
   providerBlockHash: Hash
   version: number
 }
+/**
+ * The response object for a DIP commitment proof.
+ */
 type DipCommitmentProofRes = {
   proof: ReadProof
 }
@@ -131,6 +143,9 @@ export async function generateDipCommitmentProof({
   return { proof }
 }
 
+/**
+ * The options object provided when generating a DIP identity proof.
+ */
 type DipIdentityProofOpts = {
   didUri: DidUri
   keyIds: Array<DidKey["id"]>
@@ -139,6 +154,9 @@ type DipIdentityProofOpts = {
   providerApi: ApiPromise
   version: number
 }
+/**
+ * The response object for a generated DIP proof.
+ */
 type DipIdentityProofRes = {
   proof: {
     blinded: Codec
@@ -187,11 +205,17 @@ export async function generateDipIdentityProof({
   return okProof
 }
 
+/**
+ * The Provider options object provided when generating a DIP DID signature.
+ */
 type DipDidSignatureProviderOpts = {
   didUri: DidUri
   signer: SignExtrinsicCallback
   keyRelationship: VerificationKeyRelationship
 }
+/**
+ * The Consumer options object provided when generating a DIP DID signature.
+ */
 type DipDidSignatureConsumerOpts = {
   accountIdRuntimeType: string
   api: ApiPromise
@@ -203,10 +227,16 @@ type DipDidSignatureConsumerOpts = {
   blockHeight?: BN
   genesisHash?: Hash
 }
+/**
+ * The options object provided when generating a DIP DID signature.
+ */
 type DipDidSignatureOpts = {
   consumer: DipDidSignatureConsumerOpts
   provider: DipDidSignatureProviderOpts
 }
+/**
+ * The response object for DIP DID signature.
+ */
 type DipDidSignatureRes = {
   blockNumber: BN
   signature: Uint8Array
