@@ -29,52 +29,52 @@ import type {
 import type { KeyringPair } from "@polkadot/keyring/types"
 import type { Call, Hash } from "@polkadot/types/interfaces"
 
+/** The DIP proof params. */
 export type DipSiblingProofInput = {
+  /** The `Call` on the consumer chain that requires a DIP origin. */
   call: Call
+  /** The `ApiPromise` instance for the consumer chain. */
   consumerApi: ApiPromise
+  /** The DID URI of the DIP subject that is performing the cross-chain operation. */
   didUri: DidUri
+  /** The verification method IDs of the DID to be revealed in the cross-chain operation. */
   keyIds: Array<DidKey["id"]>
+  /** The version of the DIP proof to generate. */
   proofVersion: number
+  /** The `ApiPromise` instance for the provider chain. */
   providerApi: ApiPromise
+  /** The `ApiPromise` instance for the parent relay chain. */
   relayApi: ApiPromise
+  /** The signing callback to sign the cross-chain transaction. */
   signer: SignExtrinsicCallback
+  /** The address of the tx submitter on the consumer chain. */
   submitterAddress: KeyringPair["address"]
+  /** The `VerificationKeyRelationship` required for the DIP operation to be authorized on the relay chain. */
   keyRelationship: VerificationKeyRelationship
-  // Optional, retrieved from chain otherwise
+  /** The block number on the consumer chain to use for the DID signature. If not provided, the latest best block number is used. */
   blockHeight?: BN
+  /** The genesis hash of the consumer chain to use for the DID signature. If not provided, it is retrieved at runtime from the consumer chain. */
   genesisHash?: Hash
+  /** The block number of the provider to use for the generation of the DIP proof. If not provided, the latest finalized block number is used. */
   providerBlockHeight?: BN
-  // With defaults
+  /** The runtime type definition for an `AccountId` on the consumer chain. If not provided, the `AccountId` type is used. */
   accountIdRuntimeType?: string
+  /** The runtime type definition for a `BlockNumber` on the consumer chain. If not provided, the `u64` type is used. */
   blockNumberRuntimeType?: string
+  /** The runtime type definition for the `IdentityDetails` on the consumer chain. If not provided, the `Option<u128>` type, representing a simple nonce, is used. */
   identityDetailsRuntimeType?: string
+  /** Flag indicating whether the generated DIP proof should include the web3name of the DID subject. If not provided, the web3name is not revealed. */
   includeWeb3Name?: boolean
+  /** The list of linked accounts to reveal in the generated DIP proof. If not provided, no account is revealed. */
   linkedAccounts?: readonly PalletDidLookupLinkableAccountLinkableAccountId[]
 }
 
 /**
  * Generate a submittable extrinsic for the provided call which includes a complete DIP proof according to the parameters provided, to be used on a consumer chain of which the provider chain is a sibling.
+ * 
  * @param params The DIP proof params.
- * @param params.call The [[Call]] on the consumer chain that requires a DIP origin.
- * @param params.consumerApi The [[ApiPromise]] instance for the consumer chain.
- * @param params.didUri The DID URI of the DIP subject that is performing the cross-chain operation.
- * @param params.keyIds The verification method IDs of the DID to be revealed in the cross-chain operation.
- * @param params.proofVersion The version of the DIP proof to generate.
- * @param params.providerApi The [[ApiPromise]] instance for the provider chain.
- * @param params.relayApi The [[ApiPromise]] instance for the parent relay chain.
- * @param params.signer The signing callback to sign the cross-chain transaction.
- * @param params.submitterAddress The address of the tx submitter on the consumer chain.
- * @param params.keyRelationship The [[VerificationKeyRelationship]] required for the DIP operation to be authorized on the relay chain.
- * @param params.blockHeight [OPTIONAL] The block number on the consumer chain to use for the DID signature. If not provided, the latest best block number is used.
- * @param params.genesisHash [OPTIONAL] The genesis hash of the consumer chain to use for the DID signature. If not provided, it is retrieved at runtime from the consumer chain.
- * @param params.providerBlockHeight [OPTIONAL] The block number of the provider to use for the generation of the DIP proof. If not provided, the latest finalized block number is used.
- * @param params.accountIdRuntimeType [OPTIONAL] The runtime type definition for an `AccountId` on the consumer chain. If not provided, the `AccountId` type is used.
- * @param params.blockNumberRuntimeType [OPTIONAL] The runtime type definition for a `BlockNumber` on the consumer chain. If not provided, the `u64` type is used.
- * @param params.identityDetailsRuntimeType [OPTIONAL] The runtime type definition for the `IdentityDetails` on the consumer chain. If not provided, the `Option<u128>` type, representing a simple nonce, is used.
- * @param params.includeWeb3Name [OPTIONAL] Flag indicating whether the generated DIP proof should include the web3name of the DID subject. If not provided, the web3name is not revealed.
- * @param params.linkedAccounts [OPTIONAL] The list of linked accounts to reveal in the generated DIP proof. If not provided, no account is revealed.
  *
- * @returns The [[SubmittableExtrinsic]] containing the signed cross-chain operation, that must be submitted by the account specified as the `submitterAddress` parameter.
+ * @returns The `SubmittableExtrinsic` containing the signed cross-chain operation, that must be submitted by the account specified as the `submitterAddress` parameter.
  */
 export async function generateDipAuthorizedTxForSibling({
   call,
