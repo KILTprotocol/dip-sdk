@@ -71,7 +71,7 @@ export type DipSiblingProofInput = {
 
 /**
  * Generate a submittable extrinsic for the provided call which includes a complete DIP proof according to the parameters provided, to be used on a consumer chain of which the provider chain is a sibling.
- * 
+ *
  * @param params The DIP proof params.
  *
  * @returns The `SubmittableExtrinsic` containing the signed cross-chain operation, that must be submitted by the account specified as the `submitterAddress` parameter.
