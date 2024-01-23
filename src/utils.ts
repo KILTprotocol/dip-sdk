@@ -33,27 +33,29 @@ export const defaultValues = {
 /**
  * The options object provided when generating a Provider state proof.
  */
-type ProviderStateRootProofOpts = {
+export type ProviderStateRootProofOpts = {
+  /** The `ApiPromise` instance for the provider chain. */
   providerApi: ApiPromise
+  /** The `ApiPromise` instance for the relay chain. */
   relayApi: ApiPromise
-  // Optional
+  /** The block number on the provider chain to use for the state proof. If not provided, the latest finalized block number is used. */
   providerBlockHeight?: BN
 }
 /**
  * The response object containing the provider state root proof.
  */
-type ProviderStateRootProofRes = {
+export type ProviderStateRootProofRes = {
+  /** The state proof for the provider header. */
   proof: ReadProof
+  /** The block number of the provider which the proof is anchored to. */
   providerBlockHeight: BN
+  /** The block number of the relaychain which the proof is anchored to. */
   relayBlockHeight: BN
 }
 /**
  * Generate a state proof that proofs the head of the specified parachain.
  *
  * @param params The state proof params.
- * @param params.providerApi The [[ApiPromise]] instance for the provider chain.
- * @param params.relayApi The [[ApiPromise]] instance for the relay chain.
- * @param params.providerBlockHeight [OPTIONAL] The block number on the provider chain to use for the state proof. If not provided, the latest finalized block number is used.
  *
  * @returns The generated state proof.
  */
@@ -101,26 +103,27 @@ export async function generateProviderStateRootProof({
 /**
  * The options object provided when generating a DIP commitment proof.
  */
-type DipCommitmentProofOpts = {
+export type DipCommitmentProofOpts = {
+  /** The `DidUri` of the subject. */
   didUri: DidUri
+  /** The `ApiPromise` instance for the provider chain. */
   providerApi: ApiPromise
+  /** The block hash on the provider chain to use for the state proof. */
   providerBlockHash: Hash
+  /** The version of the identity commitment to generate the state proof for. */
   version: number
 }
 /**
  * The response object for a DIP commitment proof.
  */
-type DipCommitmentProofRes = {
+export type DipCommitmentProofRes = {
+  /** The storage proof for the DIP commitment value. */
   proof: ReadProof
 }
 /**
  * Generate a state proof that proofs the value of an identity commitment on the specified provider chain.
  *
  * @param params The state proof params.
- * @param params.did The [[Did]] of the subject.
- * @param params.providerApi The [[ApiPromise]] instance for the provider chain.
- * @param params.providerBlockHash The block hash on the provider chain to use for the state proof.
- * @param params.version The version of the identity commitment to generate the state proof for.
  *
  * @returns The generated state proof.
  */
@@ -146,34 +149,38 @@ export async function generateDipCommitmentProof({
 /**
  * The options object provided when generating a DIP identity proof.
  */
-type DipIdentityProofOpts = {
+export type DipIdentityProofOpts = {
+  /** The `Did` of the subject. */
   didUri: DidUri
+  /** The list of DID verification methods to include in the DIP proof and to reveal to the consumer chain. */
   keyIds: Array<DidKey["id"]>
+  /** A flag indicating whether the web3name should be included in the DIP proof. */
   includeWeb3Name: boolean
+  /** The list of accounts linked to the DID ot include in the DIP proof and to reveal to the consumer chain. */
   linkedAccounts: readonly PalletDidLookupLinkableAccountLinkableAccountId[]
+  /** The `ApiPromise` instance for the provider chain. */
   providerApi: ApiPromise
+  /** The version of the DIP proof to generate. */
   version: number
 }
 /**
  * The response object for a generated DIP proof.
  */
-type DipIdentityProofRes = {
+export type DipIdentityProofRes = {
+  /** The generated storage proof. */
   proof: {
+    /** The Merkle proof blinded (not revealed) leaves. */
     blinded: Codec
+    /** The Merkle proof revealed leaves. */
     revealed: Codec
   }
+  /** The Merkle root hash which the proof is anchored to. */
   root: Hash
 }
 /**
  * Generate a DIP proof that reveals the specified information about the DID subject.
  *
  * @param params The DIP proof params.
- * @param params.did The [[Did]] of the subject.
- * @param params.keyIds The list of DID verification methods to include in the DIP proof and to reveal to the consumer chain.
- * @param params.includeWeb3Name A flag indicating whether the web3name should be included in the DIP proof.
- * @param params.linkedAccounts The list of accounts linked to the DID ot include in the DIP proof and to reveal to the consumer chain.
- * @param params.providerApi The [[ApiPromise]] instance for the provider chain.
- * @param params.version The version of the DIP proof to generate.
  *
  * @returns The generated DIP proof.
  */
@@ -208,36 +215,46 @@ export async function generateDipIdentityProof({
 /**
  * The Provider options object provided when generating a DIP DID signature.
  */
-type DipDidSignatureProviderOpts = {
+export type DipDidSignatureProviderOpts = {
+  /** The `DidUri` of the DIP subject that is performing the cross-chain operation. */
   didUri: DidUri
+  /** The list of `Signers` to use to sign the cross-chain payload. */
   signer: SignExtrinsicCallback
+  /** The `SignatureVerificationRelationship` to use from the provided DID Document to sign the cross-chain payload. */
   keyRelationship: VerificationKeyRelationship
 }
 /**
  * The Consumer options object provided when generating a DIP DID signature.
  */
-type DipDidSignatureConsumerOpts = {
+export type DipDidSignatureConsumerOpts = {
+  /** The runtime definition of an `AccountId`. */
   accountIdRuntimeType: string
+  /** The `ApiPromise` instance. */
   api: ApiPromise
+  /** The runtime definition of a `BlockNumber`. */
   blockNumberRuntimeType: string
+  /** The `Call` to DID-authorize. */
   call: Call
+  /** The runtime definition of the `IdentityDetails`. */
   identityDetailsRuntimeType: string
+  /** The address of the submitter account on the consumer chain. */
   submitterAddress: KeyringPair["address"]
-  // Optional
+  /** The block number to use for the DID signature. If not provided, the latest best block number is used. */
   blockHeight?: BN
+  /** The genesis hash to use for the DID signature. If not provided, it is retrieved at runtime. */
   genesisHash?: Hash
 }
 /**
  * The options object provided when generating a DIP DID signature.
  */
-type DipDidSignatureOpts = {
+export type DipDidSignatureOpts = {
   consumer: DipDidSignatureConsumerOpts
   provider: DipDidSignatureProviderOpts
 }
 /**
  * The response object for DIP DID signature.
  */
-type DipDidSignatureRes = {
+export type DipDidSignatureRes = {
   blockNumber: BN
   signature: Uint8Array
   type: VerificationKeyType
@@ -245,20 +262,8 @@ type DipDidSignatureRes = {
 /**
  * Generate a DID signature to be used in conjunction with a DIP proof to DID-authorize a cross-chain operation.
  *
- * @param params The DID signature parameters.
- * @param params.provider The provider-specific parameters.
- * @param params.provider.didDocument The [[DidDocument] of the DIP subject that is performing the cross-chain operation.
- * @param params.provider.signers The list of [[Signers]] to use to sign the cross-chain payload.
- * @param params.provider.verificationRelationship The [[SignatureVerificationRelationship]] to use from the provided DID Document to sign the cross-chain payload.
- * @param params.consumer The consumer-specific parameters.
- * @param params.consumer.accountIdRuntimeType The runtime definition of an `AccountId`.
- * @param params.consumer.api The [[ApiPromise]] instance.
- * @param params.consumer.blockNumberRuntimeType The runtime definition of a `BlockNumber`.
- * @param params.consumer.call The [[Call]] to DID-authorize.
- * @param params.consumer.identityDetailsRuntimeType The runtime definition of the `IdentityDetails`.
- * @param params.consumer.submitterAddress The address of the submitter account on the consumer chain.
- * @param params.consumer.blockHeight [OPTIONAL] The block number to use for the DID signature. If not provided, the latest best block number is used.
- * @param params.consumer.genesisHash [OPTIONAL] The genesis hash to use for the DID signature. If not provided, it is retrieved at runtime.
+ * @param params The signature generation parameters.
+
  * @returns The generated DIP proof.
  */
 export async function generateDipDidSignature({
