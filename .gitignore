@@ -22,3 +22,7 @@ cjs
 # VSCode
 
 .vscode
+
+# doc 
+**/docs/api
+/docs/api

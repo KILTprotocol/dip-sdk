@@ -21,7 +21,8 @@
     "eslint-plugin-license-header": "^0.6.0",
     "prettier": "^3.0.0",
     "rimraf": "^5.0.1",
-    "typescript": "^5.3.2",
+    "typedoc": "^0.25.7",
+    "typescript": "^5.1",
     "vitest": "^0.33.0"
   },
   "engines": {
@@ -45,9 +46,11 @@
   "scripts": {
     "build": "yarn build:cjs && yarn build:esm",
     "build:cjs": "run -T tsc -p tsconfig.cjs.json && echo '{\"type\": \"commonjs\"}' > ./dist/cjs/package.json",
+    "build:docs": "typedoc --theme default --out docs/api --tsconfig tsconfig.docs.json && touch docs/.nojekyll",
     "build:esm": "run -T tsc -p tsconfig.esm.json && echo '{\"type\": \"module\"}' > ./dist/esm/package.json",
     "check": "tsc -p tsconfig.json",
     "clean": "yarn rimraf -g */{cjs,esm}",
+    "clean:docs": "rimraf docs/api",
     "lint": "eslint --ext .ts . && prettier -c .",
     "lint:fix": "prettier -w . && eslint --fix --ext .ts .",
     "prepublish": "yarn exec cp -f ../../LICENSE .",
