@@ -28,7 +28,7 @@ export const defaultValues = {
   identityDetailsRuntimeType: "Option<u128>",
   includeWeb3Name: false,
   linkedAccounts: [],
-  validUntilOffset: new BN(50)
+  validUntilOffset: new BN(50),
 }
 
 /**
@@ -281,7 +281,11 @@ export async function generateDipDidSignature({
     genesisHash,
   },
 }: DipDidSignatureOpts): Promise<DipDidSignatureRes> {
-  const blockNumber: BN = validUntil ?? (await api.query.system.number<any>()).toBn().add(defaultValues.validUntilOffset)
+  const blockNumber: BN =
+    validUntil ??
+    (await api.query.system.number<any>())
+      .toBn()
+      .add(defaultValues.validUntilOffset)
   const genesis = genesisHash ?? (await api.query.system.blockHash(0))
   const identityDetails = (
     await api.query.dipConsumer.identityEntries<Option<Codec>>(toChain(didUri))
