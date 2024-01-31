@@ -51,8 +51,8 @@ export type DipSiblingProofInput = {
   submitterAddress: KeyringPair["address"]
   /** The `VerificationKeyRelationship` required for the DIP operation to be authorized on the relay chain. */
   keyRelationship: VerificationKeyRelationship
-  /** The block number on the consumer chain to use for the DID signature. If not provided, the latest best block number is used. */
-  blockHeight?: BN
+  /** The block number until which the DID signature is to be considered fresh. If not provided, the latest best block number + an offset of 50 is used. */
+  validUntil?: BN
   /** The genesis hash of the consumer chain to use for the DID signature. If not provided, it is retrieved at runtime from the consumer chain. */
   genesisHash?: Hash
   /** The block number of the provider to use for the generation of the DIP proof. If not provided, the latest finalized block number is used. */
@@ -88,7 +88,7 @@ export async function generateDipAuthorizedTxForSibling({
   submitterAddress,
   keyRelationship,
   // Optional
-  blockHeight,
+  validUntil,
   genesisHash,
   providerBlockHeight,
   // With defaults
@@ -132,7 +132,7 @@ export async function generateDipAuthorizedTxForSibling({
   })
 
   const {
-    blockNumber: didSignatureBlockNumber,
+    validUntil: didSignatureExpirationBlockNumber,
     signature: didSignature,
     type: didSignatureType,
   } = await generateDipDidSignature({
@@ -146,7 +146,7 @@ export async function generateDipAuthorizedTxForSibling({
       call,
       submitterAddress,
       accountIdRuntimeType,
-      blockHeight,
+      validUntil,
       blockNumberRuntimeType,
       genesisHash,
       identityDetailsRuntimeType,
@@ -157,22 +157,20 @@ export async function generateDipAuthorizedTxForSibling({
     toChain(didUri),
     {
       [`V${proofVersion}`]: {
-        paraStateRoot: {
-          relayBlockHeight: providerStateRootProofRelayBlockHeight,
+        providerHeadProof: {
+          relayBlockNumber: providerStateRootProofRelayBlockHeight,
           proof: providerStateRootProof,
         },
-        dipIdentityCommitment: dipCommitmentProof,
-        did: {
-          leaves: {
-            blinded: dipIdentityProof.blinded,
-            revealed: dipIdentityProof.revealed,
-          },
+        dipCommitmentProof,
+        dipProof: {
+          blinded: dipIdentityProof.blinded,
+          revealed: dipIdentityProof.revealed,
+        },
+        signature: {
           signature: {
-            signature: {
-              [didSignatureType]: u8aToHex(didSignature),
-            },
-            blockNumber: didSignatureBlockNumber,
+            [didSignatureType]: u8aToHex(didSignature),
           },
+          validUntil: didSignatureExpirationBlockNumber,
         },
       },
     },
