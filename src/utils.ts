@@ -66,28 +66,30 @@ export async function generateProviderStateRootProof({
   // Optional
   providerBlockHeight,
 }: ProviderStateRootProofOpts): Promise<ProviderStateRootProofRes> {
-  const [providerBlockNumber, providerBlockHash] = await (async () => {
+  const providerBlockNumber = await (async () => {
     if (providerBlockHeight !== undefined) {
-      const blockHash =
-        await providerApi.rpc.chain.getBlockHash(providerBlockHeight)
-      return [providerBlockHeight, blockHash]
+      return providerBlockHeight
     }
-    const providerLastFinalizedBlockHash =
-      await providerApi.rpc.chain.getFinalizedHead()
+    const providerLastFinalizedBlockHash = await providerApi.rpc.chain.getFinalizedHead()
     const providerLastFinalizedBlockHeight = await providerApi.rpc.chain
       .getHeader(providerLastFinalizedBlockHash)
       .then((h) => h.number.toBn())
-    return [providerLastFinalizedBlockHeight, providerLastFinalizedBlockHash]
+    return providerLastFinalizedBlockHeight
   })()
-  const providerApiAtBlock = await providerApi.at(providerBlockHash)
+  console.log(`Provider block height: ${providerBlockNumber}`)
+  // State for this block is finalized by the relaychain at the end of the next block, hence we take the next block and retrieve the relaychain validation data.
+  const nextProviderBlockNumber = providerBlockNumber.addn(1)
+  const nextProviderBlockHash = await providerApi.rpc.chain.getBlockHash(nextProviderBlockNumber)
+  const providerApiAtBlock = await providerApi.at(nextProviderBlockHash)
   const providerChainId =
     await providerApiAtBlock.query.parachainInfo.parachainId()
   const relayParentBlockNumber =
     await providerApiAtBlock.query.parachainSystem.lastRelayChainBlockNumber()
-  // This refers to the previously finalized block, we need the current one.
+  console.log(`Relay parent block number for the provider finalized block: ${relayParentBlockNumber}`)
   const relayParentBlockHash = await relayApi.rpc.chain.getBlockHash(
     relayParentBlockNumber,
   )
+  console.log(`Relay parent block hash for the provider finalized block: ${relayParentBlockNumber}`)
 
   const proof = await relayApi.rpc.state.getReadProof(
     [relayApi.query.paras.heads.key(providerChainId)],
