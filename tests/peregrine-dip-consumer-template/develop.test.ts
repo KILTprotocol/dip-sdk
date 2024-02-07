@@ -252,7 +252,7 @@ describe("V0", () => {
           const postText = "Hello, world!"
           const config: DipSiblingProofInput = {
             ...testConfig,
-            call: consumerApi.tx.system.remark(postText).method as Call,
+            call: consumerApi.tx.postIt.post(postText).method as Call,
           }
 
           const crossChainTx =
