@@ -311,7 +311,8 @@ describe("V0", () => {
           const postKey = blake2AsHex(
             consumerApi
               .createType(
-                `(${config.blockNumberRuntimeType as string
+                `(${
+                  config.blockNumberRuntimeType as string
                 }, ${web3NameRuntimeType}, Bytes)`,
                 [blockNumber, web3Name, postText],
               )
@@ -353,7 +354,8 @@ describe("V0", () => {
           const postKey = blake2AsHex(
             consumerApi
               .createType(
-                `(${config.blockNumberRuntimeType as string
+                `(${
+                  config.blockNumberRuntimeType as string
                 }, ${web3NameRuntimeType}, Bytes)`,
                 [blockNumber, web3Name, postText],
               )
