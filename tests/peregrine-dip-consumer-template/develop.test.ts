@@ -8,7 +8,7 @@
 import { setTimeout } from "timers/promises"
 
 import * as Kilt from "@kiltprotocol/sdk-js"
-import { ApiPromise, WsProvider } from "@polkadot/api"
+import { ApiPromise, Keyring, WsProvider } from "@polkadot/api"
 import { BN } from "@polkadot/util"
 import { blake2AsHex } from "@polkadot/util-crypto"
 import dotenv from "dotenv"
@@ -95,6 +95,7 @@ describe("V0", () => {
         | "keyRelationship"
         | "includeWeb3Name"
         | "submitterAddress"
+        | "linkedAccounts"
       >
 
     beforeAll(async () => {
@@ -138,13 +139,90 @@ describe("V0", () => {
         newSubmitterKeypair.address as KiltAddress,
         signCallback,
       )
+      const newKeyAgreementKeys = [...Array(10)].map(() =>
+        Kilt.Utils.Crypto.makeEncryptionKeypairFromSeed(
+          Kilt.Utils.Crypto.mnemonicToMiniSecret(
+            Kilt.Utils.Crypto.mnemonicGenerate(),
+          ),
+        ),
+      )
+      const newKeyAgreementKeysTxs = await Promise.all(
+        newKeyAgreementKeys.map((k) =>
+          providerApi.tx.did.addKeyAgreementKey(Kilt.Did.publicKeyToChain(k)),
+        ),
+      )
+      const signedKeyAgreements = await Kilt.Did.authorizeTx(
+        newFullDidUri,
+        providerApi.tx.utility.batchAll(newKeyAgreementKeysTxs),
+        signCallback,
+        newSubmitterKeypair.address as KiltAddress,
+        { txCounter: new BN(1) },
+      )
+      const newAttestationKey = new Keyring({
+        type: "ed25519",
+      }).addFromMnemonic(Kilt.Utils.Crypto.mnemonicGenerate())
+      const newAttestationKeyTx = (() => {
+        return providerApi.tx.did.setAttestationKey(
+          Kilt.Did.publicKeyToChain({
+            publicKey: newAttestationKey.publicKey,
+            type: "ed25519",
+          }),
+        )
+      })()
+      const signedNewAttestation = await Kilt.Did.authorizeTx(
+        newFullDidUri,
+        newAttestationKeyTx,
+        signCallback,
+        newSubmitterKeypair.address as KiltAddress,
+        { txCounter: new BN(2) },
+      )
+      const newDelegationKey = new Keyring({ type: "ed25519" }).addFromMnemonic(
+        Kilt.Utils.Crypto.mnemonicGenerate(),
+      )
+      const newDelegationKeyTx = (() => {
+        return providerApi.tx.did.setDelegationKey(
+          Kilt.Did.publicKeyToChain({
+            publicKey: newDelegationKey.publicKey,
+            type: "ed25519",
+          }),
+        )
+      })()
+      const signedNewDelegation = await Kilt.Did.authorizeTx(
+        newFullDidUri,
+        newDelegationKeyTx,
+        signCallback,
+        newSubmitterKeypair.address as KiltAddress,
+        { txCounter: new BN(3) },
+      )
+      const linkedAccounts = [...Array(10)].map(() =>
+        new Keyring({ type: "ed25519" }).addFromMnemonic(
+          Kilt.Utils.Crypto.mnemonicGenerate(),
+        ),
+      )
+      const linkAccountTxs = await Promise.all(
+        linkedAccounts.map(async (acc) => {
+          const functionArgs = await Kilt.Did.associateAccountToChainArgs(
+            acc.address,
+            newFullDidUri,
+            async (input) => acc.sign(input, { withType: true }),
+          )
+          return providerApi.tx.didLookup.associateAccount(...functionArgs)
+        }),
+      )
+      const signedLinkedAccounts = await Kilt.Did.authorizeTx(
+        newFullDidUri,
+        providerApi.tx.utility.batchAll(linkAccountTxs),
+        signCallback,
+        newSubmitterKeypair.address as KiltAddress,
+        { txCounter: new BN(4) },
+      )
       const newWeb3Name = Kilt.Utils.UUID.generate().substring(2, 25)
       const web3NameTx = await Kilt.Did.authorizeTx(
         newFullDidUri,
         providerApi.tx.web3Names.claim(newWeb3Name),
         signCallback,
         newSubmitterKeypair.address as KiltAddress,
-        { txCounter: new BN(1) },
+        { txCounter: new BN(5) },
       )
       const commitIdentityTx = await Kilt.Did.authorizeTx(
         newFullDidUri,
@@ -154,10 +232,14 @@ describe("V0", () => {
         ),
         signCallback,
         newSubmitterKeypair.address as KiltAddress,
-        { txCounter: new BN(2) },
+        { txCounter: new BN(6) },
       )
       const batchedTx = providerApi.tx.utility.batchAll([
         didCreationTx,
+        signedKeyAgreements,
+        signedNewAttestation,
+        signedNewDelegation,
+        signedLinkedAccounts,
         web3NameTx,
         commitIdentityTx,
       ])
@@ -176,6 +258,10 @@ describe("V0", () => {
       web3Name = newWeb3Name
       didKeypair = newDidKeypair
 
+      const accs = (
+        await providerApi.call.did.query(Kilt.Did.toChain(newFullDidUri))
+      ).unwrap().accounts
+
       testConfig = {
         ...v0Config,
         didUri: did.uri,
@@ -183,10 +269,16 @@ describe("V0", () => {
           signature: await didKeypair.sign(data),
           keyType: didKeypair.type as VerificationKeyType,
         }),
-        keyIds: [did.authentication[0].id],
+        keyIds: [
+          did.authentication[0].id,
+          ...did.keyAgreement!.map((k) => k.id),
+          did.capabilityDelegation![0].id,
+          did.assertionMethod![0].id,
+        ],
         keyRelationship: "authentication",
         includeWeb3Name: true,
         submitterAddress: submitterKeypair.address,
+        linkedAccounts: accs,
       }
     }, 96_000)
 

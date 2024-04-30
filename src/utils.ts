@@ -6,6 +6,7 @@
  */
 
 import { toChain } from "@kiltprotocol/did"
+import { BN } from "@polkadot/util"
 
 import type { PalletDidLookupLinkableAccountLinkableAccountId } from "@kiltprotocol/augment-api"
 import type {
@@ -14,12 +15,11 @@ import type {
   DidKey,
   VerificationKeyRelationship,
   VerificationKeyType,
-  BN,
 } from "@kiltprotocol/types"
 import type { ApiPromise } from "@polkadot/api"
 import type { KeyringPair } from "@polkadot/keyring/types"
 import type { Call, Hash, ReadProof } from "@polkadot/types/interfaces"
-import type { Result, Option } from "@polkadot/types-codec"
+import type { Option } from "@polkadot/types-codec"
 import type { Codec } from "@polkadot/types-codec/types"
 
 export const defaultValues = {
@@ -28,6 +28,7 @@ export const defaultValues = {
   identityDetailsRuntimeType: "Option<u128>",
   includeWeb3Name: false,
   linkedAccounts: [],
+  validUntilOffset: new BN(50),
 }
 
 /**
@@ -192,12 +193,10 @@ export async function generateDipIdentityProof({
   providerApi,
   version,
 }: DipIdentityProofOpts): Promise<DipIdentityProofRes> {
-  const proof = await providerApi.call.dipProvider.generateProof<
-    Result<Codec, Codec>
-  >({
+  const proof = await providerApi.call.dipProvider.generateProof({
     identifier: toChain(did),
     version,
-    keys: keyIds.map((keyId) => keyId.substring(1)),
+    proofKeys: keyIds.map((keyId) => keyId.substring(1)),
     accounts: linkedAccounts,
     shouldIncludeWeb3Name: includeWeb3Name,
   })
@@ -239,8 +238,8 @@ export type DipDidSignatureConsumerOpts = {
   identityDetailsRuntimeType: string
   /** The address of the submitter account on the consumer chain. */
   submitterAddress: KeyringPair["address"]
-  /** The block number to use for the DID signature. If not provided, the latest best block number is used. */
-  blockHeight?: BN
+  /** The block number until which the DID signature is to be considered fresh. If not provided, the latest best block number + an offset of 50 is used. */
+  validUntil?: BN
   /** The genesis hash to use for the DID signature. If not provided, it is retrieved at runtime. */
   genesisHash?: Hash
 }
@@ -255,7 +254,7 @@ export type DipDidSignatureOpts = {
  * The response object for DIP DID signature.
  */
 export type DipDidSignatureRes = {
-  blockNumber: BN
+  validUntil: BN
   signature: Uint8Array
   type: VerificationKeyType
 }
@@ -276,12 +275,15 @@ export async function generateDipDidSignature({
     identityDetailsRuntimeType,
     submitterAddress,
     // Optional
-    blockHeight,
+    validUntil,
     genesisHash,
   },
 }: DipDidSignatureOpts): Promise<DipDidSignatureRes> {
   const blockNumber: BN =
-    blockHeight ?? (await api.query.system.number<any>()).toBn()
+    validUntil ??
+    (await api.query.system.number<any>())
+      .toBn()
+      .add(defaultValues.validUntilOffset)
   const genesis = genesisHash ?? (await api.query.system.blockHash(0))
   const identityDetails = (
     await api.query.dipConsumer.identityEntries<Option<Codec>>(toChain(didUri))
@@ -299,7 +301,7 @@ export async function generateDipDidSignature({
     keyRelationship,
   })
   return {
-    blockNumber,
+    validUntil: blockNumber,
     signature,
     type: keyType,
   }
