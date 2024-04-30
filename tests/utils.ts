@@ -6,104 +6,18 @@
  */
 
 import * as Kilt from "@kiltprotocol/sdk-js"
-import { didCalls, types } from "@kiltprotocol/type-definitions"
-import { ApiPromise, SubmittableResult, WsProvider } from "@polkadot/api"
+import { SubmittableResult } from "@polkadot/api"
 import { describe } from "vitest"
 
 import type { KeyringPair, SubmittableExtrinsic } from "@kiltprotocol/types"
+import type { ApiPromise } from "@polkadot/api"
 import type {
   AnyNumber,
   ISubmittableResult,
-  DefinitionsCall,
-  RegistryTypes,
 } from "@polkadot/types/types"
 
-import { dipProviderCalls } from "../src/runtime.js"
-
-const dipProviderTemplateRuntimeCalls: DefinitionsCall = {
-  ...dipProviderCalls,
-  ...didCalls,
-}
-const dipTypes: RegistryTypes = {
-  ...types,
-  IdentityCommitmentVersion: "u16",
-  // DipProvider state_call
-  DipProofRequest: {
-    identifier: "AccountId32",
-    version: "IdentityCommitmentVersion",
-    keys: "Vec<Hash>",
-    accounts: "Vec<PalletDidLookupLinkableAccountLinkableAccountId>",
-    shouldIncludeWeb3Name: "bool",
-  },
-  CompleteMerkleProof: {
-    root: "MerkleRoot",
-    proof: "MerkleProof",
-  },
-  MerkleRoot: "Hash",
-  MerkleProof: {
-    blinded: "BlindedLeaves",
-    revealed: "RevealedLeaves",
-  },
-  BlindedLeaves: "Vec<BlindedValue>",
-  BlindedValue: "Bytes",
-  RevealedLeaves: "Vec<RevealedLeaf>",
-  RevealedLeaf: {
-    _enum: {
-      DidKey: "(DidKeyMerkleKey, DidKeyMerkleValue)",
-      Web3Name: "(Web3NameMerkleKey, Web3NameMerkleValue)",
-      LinkedAccount: "(LinkedAccountMerkleKey, LinkedAccountMerkleValue)",
-    },
-  },
-  DidKeyMerkleKey: "(KeyId, KeyRelationship)",
-  KeyId: "Hash",
-  KeyRelationship: {
-    _enum: {
-      Encryption: "Null",
-      Verification: "VerificationRelationship",
-    },
-  },
-  VerificationRelationship: {
-    _enum: [
-      "Authentication",
-      "CapabilityDelegation",
-      "CapabilityInvocation",
-      "AssertionMethod",
-    ],
-  },
-  DidKeyMerkleValue: "DidDidDetailsDidPublicKeyDetails",
-  Web3NameMerkleKey: "Text",
-  Web3NameMerkleValue: "BlockNumber",
-  LinkedAccountMerkleKey: "PalletDidLookupLinkableAccountLinkableAccountId",
-  LinkedAccountMerkleValue: "Null",
-  RuntimeApiDipProofError: {
-    _enum: {
-      IdentityProvider: "LinkedDidIdentityProviderError",
-      MerkleProof: "DidMerkleProofError",
-    },
-  },
-  LinkedDidIdentityProviderError: {
-    _enum: ["DidNotFound", "DidDeleted", "Internal"],
-  },
-  DidIdentityProviderError: {
-    _enum: ["DidNotFound", "Internal"],
-  },
-  DidMerkleProofError: {
-    _enum: [
-      "UnsupportedVersion",
-      "KeyNotFound",
-      "LinkedAccountNotFound",
-      "Web3NameNotFound",
-      "Internal",
-    ],
-  },
-}
-
 export async function createProviderApi(address: string): Promise<ApiPromise> {
-  return ApiPromise.create({
-    provider: new WsProvider(address),
-    runtime: dipProviderTemplateRuntimeCalls,
-    types: dipTypes,
-  })
+  return Kilt.connect(address)
 }
 
 // Taken from the KILT SDK: https://github.com/KILTprotocol/sdk-js/blob/c4ab492812d19169532a399b57dd1bd013a61570/packages/chain-helpers/src/blockchain/Blockchain.ts#L179

@@ -13,9 +13,10 @@ import { BN } from "@polkadot/util"
 import { blake2AsHex } from "@polkadot/util-crypto"
 import dotenv from "dotenv"
 import { beforeAll, describe, it, expect } from "vitest"
+import { dipProof, generateDipSiblingBaseProof } from '@kiltprotocol/dip-sdk'
 
 import type { GetStoreTxSignCallback, Web3Name } from "@kiltprotocol/did"
-import type { DipSiblingProofInput } from "@kiltprotocol/dip-sdk"
+import type { DipSiblingBaseProofInput } from "@kiltprotocol/dip-sdk"
 import type {
   DidDocument,
   KiltAddress,
@@ -32,7 +33,7 @@ dotenv.config({
 })
 
 const baseConfig: Pick<
-  DipSiblingProofInput,
+  DipSiblingBaseProofInput,
   | "accountIdRuntimeType"
   | "blockNumberRuntimeType"
   | "identityDetailsRuntimeType"
@@ -58,9 +59,9 @@ describe("V0", () => {
   // beforeAll
   let v0Config: typeof baseConfig &
     Pick<
-      DipSiblingProofInput,
-      "consumerApi" | "proofVersion" | "providerApi" | "relayApi"
-    >
+      DipSiblingBaseProofInput,
+      "proofVersion" | "providerApi" | "relayApi"
+    > & { "consumerApi": dipProof.extensions.TimeBoundDidSignatureConsumerOpts['api'] }
 
   beforeAll(async () => {
     const [relayApi, providerApi, consumerApi] = await Promise.all([
@@ -88,15 +89,12 @@ describe("V0", () => {
     let lastTestSetupProviderBlockNumber: BN
     let testConfig: typeof v0Config &
       Pick<
-        DipSiblingProofInput,
+        DipSiblingBaseProofInput,
         | "didUri"
-        | "signer"
         | "keyIds"
-        | "keyRelationship"
         | "includeWeb3Name"
-        | "submitterAddress"
         | "linkedAccounts"
-      >
+      > & Pick<dipProof.extensions.TimeBoundDidSignatureProviderOpts, 'signer' | 'keyRelationship'> & Pick<dipProof.extensions.TimeBoundDidSignatureConsumerOpts, 'submitterAddress'>
 
     beforeAll(async () => {
       const { providerApi, consumerApi } = v0Config
@@ -288,6 +286,8 @@ describe("V0", () => {
         it("Successful posts on the consumer's PostIt pallet using by default the latest provider finalized block", async () => {
           const { consumerApi } = testConfig
           const postText = "Hello, world!"
+          const baseDipProof = generateDipSiblingBaseProof(testConfig)
+          const crossChainDidSignature = dipProof.extensions.generateTimeBoundDipDidSignature(testConfig)
           const config: DipSiblingProofInput = {
             ...testConfig,
             call: consumerApi.tx.postIt.post(postText).method as Call,
@@ -311,8 +311,7 @@ describe("V0", () => {
           const postKey = blake2AsHex(
             consumerApi
               .createType(
-                `(${
-                  config.blockNumberRuntimeType as string
+                `(${config.blockNumberRuntimeType as string
                 }, ${web3NameRuntimeType}, Bytes)`,
                 [blockNumber, web3Name, postText],
               )
@@ -354,8 +353,7 @@ describe("V0", () => {
           const postKey = blake2AsHex(
             consumerApi
               .createType(
-                `(${
-                  config.blockNumberRuntimeType as string
+                `(${config.blockNumberRuntimeType as string
                 }, ${web3NameRuntimeType}, Bytes)`,
                 [blockNumber, web3Name, postText],
               )
