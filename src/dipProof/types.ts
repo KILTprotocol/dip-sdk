@@ -5,7 +5,5 @@
  * found in the LICENSE file in the root directory of this source tree.
  */
 
-export type * from './types.js'
-
-export * from './providerStateRoot.js'
-export * from './subjectDipCommitment.js'
+export type * from './subjectIdentity.js'
+export type * from './extensions/types.js'

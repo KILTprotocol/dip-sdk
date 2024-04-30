@@ -23,7 +23,6 @@ import type {
   SubmittableExtrinsic,
 } from "@kiltprotocol/types"
 import type { Call } from "@polkadot/types/interfaces"
-import type { Codec } from "@polkadot/types-codec/types"
 
 const defaultValues = {
   includeWeb3Name: async () => false,
@@ -118,7 +117,7 @@ export async function generateDipSiblingBaseProof({
 }
 
 export type GenerateDipSubmittableExtrinsicInput = {
-  additionalProofElements: Record<string, Codec>,
+  additionalProofElements: Record<any, any>,
   api: ApiPromise,
   baseDipProof: DipSiblingBaseProofRes,
   call: Call
@@ -132,7 +131,15 @@ export function generateDipSubmittableExtrinsic({ additionalProofElements, api, 
     toChain(didUri),
     {
       [`V${proofVersion}`]: {
-        ...dipProof,
+        providerHeadProof: {
+          relayBlockNumber: dipProof.providerHeadProof.relayBlockHeight,
+          proof: dipProof.providerHeadProof.proof.proof
+        },
+        dipCommitmentProof: dipProof.dipCommitmentProof.proof.proof,
+        dipProof: {
+          blinded: dipProof.dipProof.proof.blinded,
+          revealed: dipProof.dipProof.proof.revealed
+        },
         ...additionalProofElements
       }
     },

@@ -6,7 +6,7 @@
  */
 
 import { toChain } from "@kiltprotocol/did"
-import { BN } from "@polkadot/util"
+import { BN, u8aToHex } from "@polkadot/util"
 
 import type {
   DidUri,
@@ -127,7 +127,7 @@ export async function generateTimeBoundDipDidSignature({
 export function signatureToCodec(signature: TimeBoundDidSignatureRes): Record<string, Codec> {
   const encodedSignature = {
     signature: {
-      [signature.type]: signature.signature
+      [signature.type]: u8aToHex(signature.signature)
     },
     validUntil: signature.validUntil
   } as any as Codec

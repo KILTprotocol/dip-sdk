@@ -13,10 +13,9 @@ import { BN } from "@polkadot/util"
 import { blake2AsHex } from "@polkadot/util-crypto"
 import dotenv from "dotenv"
 import { beforeAll, describe, it, expect } from "vitest"
-import { dipProof, generateDipSiblingBaseProof } from '@kiltprotocol/dip-sdk'
 
 import type { GetStoreTxSignCallback, Web3Name } from "@kiltprotocol/did"
-import type { DipSiblingBaseProofInput } from "@kiltprotocol/dip-sdk"
+import type { DipSiblingBaseProofInput, TimeBoundDidSignatureConsumerOpts, TimeBoundDidSignatureOpts, TimeBoundDidSignatureProviderOpts } from "@kiltprotocol/dip-sdk"
 import type {
   DidDocument,
   KiltAddress,
@@ -29,14 +28,12 @@ import type { Codec } from "@polkadot/types/types"
 import { signAndSubmitTx, withCrossModuleSystemImport } from "../utils.js"
 
 dotenv.config({
-  path: "tests/peregrine-dip-consumer-template/.env.develop.test",
+  path: "tests/peregrine-dip-consumer-template/.env.develop.test"
 })
 
 const baseConfig: Pick<
-  DipSiblingBaseProofInput,
-  | "accountIdRuntimeType"
-  | "blockNumberRuntimeType"
-  | "identityDetailsRuntimeType"
+  TimeBoundDidSignatureConsumerOpts,
+  "accountIdRuntimeType" | "blockNumberRuntimeType" | "identityDetailsRuntimeType"
 > = {
   accountIdRuntimeType: "AccountId32",
   blockNumberRuntimeType: "u64",
@@ -61,7 +58,7 @@ describe("V0", () => {
     Pick<
       DipSiblingBaseProofInput,
       "proofVersion" | "providerApi" | "relayApi"
-    > & { "consumerApi": dipProof.extensions.TimeBoundDidSignatureConsumerOpts['api'] }
+    > & { "consumerApi": TimeBoundDidSignatureConsumerOpts['api'] }
 
   beforeAll(async () => {
     const [relayApi, providerApi, consumerApi] = await Promise.all([
@@ -94,7 +91,7 @@ describe("V0", () => {
         | "keyIds"
         | "includeWeb3Name"
         | "linkedAccounts"
-      > & Pick<dipProof.extensions.TimeBoundDidSignatureProviderOpts, 'signer' | 'keyRelationship'> & Pick<dipProof.extensions.TimeBoundDidSignatureConsumerOpts, 'submitterAddress'>
+      > & Pick<TimeBoundDidSignatureProviderOpts, 'signer' | 'keyRelationship'> & Pick<TimeBoundDidSignatureConsumerOpts, 'submitterAddress'>
 
     beforeAll(async () => {
       const { providerApi, consumerApi } = v0Config
@@ -286,18 +283,20 @@ describe("V0", () => {
         it("Successful posts on the consumer's PostIt pallet using by default the latest provider finalized block", async () => {
           const { consumerApi } = testConfig
           const postText = "Hello, world!"
-          const baseDipProof = generateDipSiblingBaseProof(testConfig)
-          const crossChainDidSignature = dipProof.extensions.generateTimeBoundDipDidSignature(testConfig)
-          const config: DipSiblingProofInput = {
+          const call = consumerApi.tx.postIt.post(postText).method as Call
+          const config: DipSiblingBaseProofInput & TimeBoundDidSignatureOpts = {
             ...testConfig,
-            call: consumerApi.tx.postIt.post(postText).method as Call,
+            provider: testConfig,
+            consumer: { ...testConfig, api: consumerApi, call }
           }
+          const baseDipProof = await DipSdk.generateDipSiblingBaseProof(config)
+          const crossChainDidSignature = await DipSdk.dipProof.extensions.generateTimeBoundDipDidSignature(config)
 
-          const crossChainTx =
-            await DipSdk.generateDipAuthorizedTxForSibling(config)
+          const dipSubmittable = DipSdk.generateDipSubmittableExtrinsic({ additionalProofElements: crossChainDidSignature, api: consumerApi, baseDipProof, call, didUri: did.uri })
+
           const { status } = await signAndSubmitTx(
             consumerApi,
-            crossChainTx,
+            dipSubmittable,
             submitterKeypair,
           )
           expect(
@@ -311,7 +310,7 @@ describe("V0", () => {
           const postKey = blake2AsHex(
             consumerApi
               .createType(
-                `(${config.blockNumberRuntimeType as string
+                `(${config.consumer.blockNumberRuntimeType as string
                 }, ${web3NameRuntimeType}, Bytes)`,
                 [blockNumber, web3Name, postText],
               )
@@ -328,18 +327,23 @@ describe("V0", () => {
         it("Successful posts on the consumer's PostIt pallet using the same block as before", async () => {
           const { consumerApi } = testConfig
           const postText = "Hello, world!"
-          const config: DipSiblingProofInput = {
+          const call = consumerApi.tx.postIt.post(postText).method as Call
+          const config: DipSiblingBaseProofInput & TimeBoundDidSignatureOpts = {
             ...testConfig,
-            call: consumerApi.tx.postIt.post(postText).method as Call,
             // Set explicit block number for the DIP proof
             providerBlockHeight: lastTestSetupProviderBlockNumber,
+            provider: testConfig,
+            consumer: { ...testConfig, api: consumerApi, call, }
           }
 
-          const crossChainTx =
-            await DipSdk.generateDipAuthorizedTxForSibling(config)
+          const baseDipProof = await DipSdk.generateDipSiblingBaseProof(config)
+          const crossChainDidSignature = await DipSdk.dipProof.extensions.generateTimeBoundDipDidSignature(config)
+
+          const dipSubmittable = DipSdk.generateDipSubmittableExtrinsic({ additionalProofElements: crossChainDidSignature, api: consumerApi, baseDipProof, call, didUri: did.uri })
+
           const { status } = await signAndSubmitTx(
             consumerApi,
-            crossChainTx,
+            dipSubmittable,
             submitterKeypair,
           )
           expect(
@@ -353,7 +357,7 @@ describe("V0", () => {
           const postKey = blake2AsHex(
             consumerApi
               .createType(
-                `(${config.blockNumberRuntimeType as string
+                `(${config.consumer.blockNumberRuntimeType as string
                 }, ${web3NameRuntimeType}, Bytes)`,
                 [blockNumber, web3Name, postText],
               )
