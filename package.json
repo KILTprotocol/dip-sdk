@@ -2,11 +2,11 @@
   "bugs": "https://github.com/KILTprotocol/dip-sdk/issues",
   "description": "An SDK to help integration of the KILT Decentralized Identity Provider (DIP) protocol using KILT as an Identity Provider.",
   "dependencies": {
-    "@kiltprotocol/did": "0.35.1-rc.1",
-    "@kiltprotocol/types": "0.35.1-rc.1"
+    "@kiltprotocol/did": "0.35.1-rc.2",
+    "@kiltprotocol/types": "0.35.1-rc.2"
   },
   "devDependencies": {
-    "@kiltprotocol/sdk-js": "0.35.1-rc.1",
+    "@kiltprotocol/sdk-js": "0.35.1-rc.2",
     "@types/node": "^20.9.4",
     "@typescript-eslint/eslint-plugin": "^6.2.0",
     "@typescript-eslint/parser": "^6.2.0",

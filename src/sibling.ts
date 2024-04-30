@@ -108,8 +108,9 @@ export async function generateDipAuthorizedTxForSibling({
     providerBlockHeight,
   })
 
+  // Proof of commitment must be generated with the state root at the block before the last one finalized.
   const dipRootProofBlockHash = await providerApi.rpc.chain.getBlockHash(
-    providerStateRootProofProviderBlockHeight,
+    providerStateRootProofProviderBlockHeight.subn(1),
   )
 
   const {
@@ -121,7 +122,6 @@ export async function generateDipAuthorizedTxForSibling({
     version: proofVersion,
   })
 
-  // TODO: Getting an invalid DID merkle proof now, need to be investigated further.
   const { proof: dipIdentityProof } = await generateDipIdentityProof({
     didUri,
     providerApi,

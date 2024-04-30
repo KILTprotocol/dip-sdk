@@ -285,9 +285,6 @@ describe("V0", () => {
     withCrossModuleSystemImport<typeof import("@kiltprotocol/dip-sdk")>(
       "..",
       async (DipSdk) => {
-        // TODO: The provider block considered is the one where the state is changed, and so far so good.
-        // The problem stems from the fact that such state, even when it's finalized, will be included into a successive block by the relaychain, not the previous one.
-        // Hence, given a block number for the provider, the relay block to consider is the one in the validation data + 1.
         it("Successful posts on the consumer's PostIt pallet using by default the latest provider finalized block", async () => {
           const { consumerApi } = testConfig
           const postText = "Hello, world!"
@@ -314,8 +311,7 @@ describe("V0", () => {
           const postKey = blake2AsHex(
             consumerApi
               .createType(
-                `(${
-                  config.blockNumberRuntimeType as string
+                `(${config.blockNumberRuntimeType as string
                 }, ${web3NameRuntimeType}, Bytes)`,
                 [blockNumber, web3Name, postText],
               )
@@ -357,8 +353,7 @@ describe("V0", () => {
           const postKey = blake2AsHex(
             consumerApi
               .createType(
-                `(${
-                  config.blockNumberRuntimeType as string
+                `(${config.blockNumberRuntimeType as string
                 }, ${web3NameRuntimeType}, Bytes)`,
                 [blockNumber, web3Name, postText],
               )
