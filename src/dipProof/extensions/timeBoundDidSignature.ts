@@ -21,10 +21,10 @@ import type { Option } from "@polkadot/types-codec"
 import type { Codec } from "@polkadot/types-codec/types"
 
 const defaultValues = {
-  accountIdRuntimeType: "AccountId",
-  blockNumberRuntimeType: "u64",
-  identityDetailsRuntimeType: "Option<u128>",
-  validUntilOffset: new BN(50),
+  accountIdRuntimeType: async () => "AccountId",
+  blockNumberRuntimeType: async () => "u64",
+  identityDetailsRuntimeType: async () => "Option<u128>",
+  validUntilOffset: async () => new BN(50),
 }
 
 /**
@@ -99,16 +99,16 @@ export async function generateTimeBoundDipDidSignature({
     validUntil ??
     (await api.query.system.number())
       .toBn()
-      .add(defaultValues.validUntilOffset)
+      .add(await defaultValues.validUntilOffset())
   const genesis = genesisHash ?? (await api.query.system.blockHash(0))
-  const actualIdentityDetailsRuntimeType = identityDetailsRuntimeType ?? defaultValues.identityDetailsRuntimeType
+  const actualIdentityDetailsRuntimeType = identityDetailsRuntimeType ?? await defaultValues.identityDetailsRuntimeType()
   const identityDetails = (
     await api.query.dipConsumer.identityEntries<Option<Codec>>(toChain(didUri))
   ).unwrapOr(api.createType(actualIdentityDetailsRuntimeType, null))
 
   const signaturePayload = api
     .createType(
-      `(Call, ${identityDetailsRuntimeType}, ${accountIdRuntimeType ?? defaultValues.accountIdRuntimeType}, ${blockNumberRuntimeType ?? defaultValues.blockNumberRuntimeType}, Hash)`,
+      `(Call, ${identityDetailsRuntimeType}, ${accountIdRuntimeType ?? await defaultValues.accountIdRuntimeType()}, ${blockNumberRuntimeType ?? await defaultValues.blockNumberRuntimeType()}, Hash)`,
       [call, identityDetails, submitterAddress, blockNumber, genesis],
     )
     .toU8a()

@@ -26,8 +26,8 @@ import type { Call } from "@polkadot/types/interfaces"
 import type { Codec } from "@polkadot/types-codec/types"
 
 const defaultValues = {
-  includeWeb3Name: () => false,
-  linkedAccounts: () => [],
+  includeWeb3Name: async () => false,
+  linkedAccounts: async () => [],
   providerBlockHeight: async (providerApi: ApiPromise) => {
     const providerLastFinalizedBlockHash =
       await providerApi.rpc.chain.getFinalizedHead()
@@ -104,9 +104,9 @@ export async function generateDipSiblingBaseProof({
     didUri,
     providerApi,
     keyIds,
-    linkedAccounts: linkedAccounts || defaultValues.linkedAccounts(),
+    linkedAccounts: linkedAccounts || await defaultValues.linkedAccounts(),
     version: proofVersion,
-    includeWeb3Name: includeWeb3Name || defaultValues.includeWeb3Name(),
+    includeWeb3Name: includeWeb3Name || await defaultValues.includeWeb3Name(),
   })
 
   return {
