@@ -8,7 +8,7 @@
 import { BN } from "@polkadot/util"
 
 import type { ApiPromise } from "@polkadot/api"
-import type { ReadProof } from "@polkadot/types/interfaces"
+import type { ReadProof, Hash } from "@polkadot/types/interfaces"
 import type { Option, Bytes } from "@polkadot/types-codec"
 
 /**
@@ -26,8 +26,6 @@ export type ProviderStateRootProofOpts = {
   relayBlockHeight: BN
   /** The version of the parachain state proof to generate. */
   proofVersion: number
-  /** The para ID of the provider chain. */
-  providerParaId: number
 }
 /**
  * The response object containing the provider state proof.
@@ -35,7 +33,13 @@ export type ProviderStateRootProofOpts = {
 export type ProviderStateRootProofRes = {
   /** The raw state proof for the provider state. */
   proof: ReadProof
-  /** The block number of the provider which the proof is calculated from. */
+  /** The hash of the relay block which the proof is anchored to. */
+  relayBlockHash: Hash
+  /** The number of the relay block which the proof is anchored to. */
+  relayBlockHeight: BN,
+  /** The hash of the parachain block which the proof is calculated from. */
+  providerBlockHash: Hash
+  /** The number of the parachain block which the proof is calculated from. */
   providerBlockHeight: BN
 }
 /**
@@ -53,17 +57,18 @@ export async function generateProviderStateRootProof({
   relayApi,
   relayBlockHeight, // `proofVersion` is not used, for now, but it's added to avoid introducing unnecessary breaking changes
   // proofVersion,
-  providerParaId,
 }: ProviderStateRootProofOpts): Promise<ProviderStateRootProofRes> {
+  const providerParaId = await providerApi.query.parachainInfo.parachainId()
+
   const relayBlockHash = await (async () => {
     const relayBlock = await relayApi.derive.chain.getBlockByNumber(relayBlockHeight)
     return relayBlock.block.header.hash
   })()
-  const providerStoredBlockNumber = await (async () => {
+  const providerStoredHeader = await (async () => {
     const relayApiAtBlock = await relayApi.at(relayBlockHash)
     const providerHeadData = await relayApiAtBlock.query.paras.heads<Option<Bytes>>(providerParaId)
     const providerBlockHash = providerHeadData.unwrap().slice(0, 32)
-    return providerApi.rpc.chain.getBlock(providerBlockHash).then((block) => block.block.header.number.toBn())
+    return providerApi.rpc.chain.getBlock(providerBlockHash).then(({ block: { header } }) => header)
   })()
 
   const proof = await relayApi.rpc.state.getReadProof(
@@ -73,6 +78,9 @@ export async function generateProviderStateRootProof({
 
   return {
     proof,
-    providerBlockHeight: providerStoredBlockNumber
+    relayBlockHash,
+    relayBlockHeight,
+    providerBlockHash: providerStoredHeader.hash,
+    providerBlockHeight: providerStoredHeader.number.toBn()
   }
 }

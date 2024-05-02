@@ -5,7 +5,7 @@
  * found in the LICENSE file in the root directory of this source tree.
  */
 
-import { keyToResolvedKey, toChain } from "@kiltprotocol/did"
+import { toChain } from "@kiltprotocol/did"
 import { ApiPromise } from "@polkadot/api"
 import { BN } from "@polkadot/util"
 
@@ -36,8 +36,6 @@ export type DipSiblingBaseProofInput = {
   keyIds: Array<DidKey["id"]>
   /** The version of the DIP proof to generate. */
   proofVersion: number
-  /** The para ID of the provider chain. */
-  providerParaId: number
   /** The `ApiPromise` instance for the provider chain. */
   providerApi: ApiPromise
   /** The `ApiPromise` instance for the parent relay chain. */
@@ -76,7 +74,6 @@ export async function generateDipSiblingBaseProof({
   didUri,
   keyIds,
   proofVersion,
-  providerParaId,
   providerApi,
   relayApi,
   relayBlockHeight,
@@ -92,12 +89,11 @@ export async function generateDipSiblingBaseProof({
     providerApi,
     relayBlockHeight: actualRelayBlockHeight,
     proofVersion,
-    providerParaId
   })
   const dipCommitmentProof = await generateDipCommitmentProof({
     didUri,
     providerApi,
-    providerBlockHash,
+    providerBlockHash: providerHeadProof.providerBlockHash,
     version: proofVersion,
   })
   const dipProof = await generateDipIdentityProof({
