@@ -72,7 +72,7 @@ export async function generateProviderStateRootProof({
   })()
 
   const proof = await relayApi.rpc.state.getReadProof(
-    [relayApi.query.paras.heads.key()],
+    [relayApi.query.paras.heads.key(providerParaId)],
     relayBlockHash,
   )
 

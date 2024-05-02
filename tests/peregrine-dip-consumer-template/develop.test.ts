@@ -26,9 +26,10 @@ import type {
   KiltAddress,
   VerificationKeyType,
 } from "@kiltprotocol/types"
-import type { Option } from "@polkadot/types/codec"
+import type { Option, Vec } from "@polkadot/types/codec"
 import type { Call } from "@polkadot/types/interfaces"
 import type { Codec } from "@polkadot/types/types"
+import type { u32 } from '@polkadot/types-codec'
 
 import { signAndSubmitTx, withCrossModuleSystemImport } from "../utils.js"
 
@@ -90,7 +91,7 @@ describe("V0", () => {
     let did: DidDocument
     let web3Name: Web3Name
     let didKeypair: Kilt.KeyringPair
-    let lastTestSetupProviderBlockNumber: BN
+    let lastTestSetupRelayBlockNumber: BN
     let testConfig: typeof v0Config &
       Pick<
         DipSiblingBaseProofInput,
@@ -247,11 +248,12 @@ describe("V0", () => {
       await Kilt.Blockchain.signAndSubmitTx(batchedTx, newSubmitterKeypair, {
         resolveOn: Kilt.Blockchain.IS_FINALIZED,
       })
-      lastTestSetupProviderBlockNumber = (
-        await providerApi.derive.chain.bestNumberFinalized()
-      ).toBn()
-      // Await another 12s for the next block to be finalized, before starting with the proof generation
-      await setTimeout(12_000)
+      // Await another 24s for the next block to be finalized, before starting with the proof generation
+      await setTimeout(24_000)
+      lastTestSetupRelayBlockNumber = await (async () => {
+        const latestRelayBlocksStoredOnConsumer = await consumerApi.query.relayStore.latestBlockHeights<Vec<u32>>()
+        return latestRelayBlocksStoredOnConsumer[-1].toBn()
+      })()
       const newFullDid = (await Kilt.Did.resolve(newFullDidUri))
         ?.document as DidDocument
       submitterKeypair = newSubmitterKeypair
@@ -286,7 +288,7 @@ describe("V0", () => {
     withCrossModuleSystemImport<typeof import("@kiltprotocol/dip-sdk")>(
       "..",
       async (DipSdk) => {
-        it("Successful posts on the consumer's PostIt pallet using by default the latest provider finalized block", async () => {
+        it("Successful posts on the consumer's PostIt pallet using by default the latest relay finalized block (it works if provider and consumer are backed and included finalized in the same relayblock and not alternatively)", async () => {
           const { consumerApi } = testConfig
           const postText = "Hello, world!"
           const call = consumerApi.tx.postIt.post(postText).method as Call
@@ -349,7 +351,7 @@ describe("V0", () => {
           const config: DipSiblingBaseProofInput & TimeBoundDidSignatureOpts = {
             ...testConfig,
             // Set explicit block number for the DIP proof
-            providerBlockHeight: lastTestSetupProviderBlockNumber,
+            relayBlockHeight: lastTestSetupRelayBlockNumber,
             provider: testConfig,
             consumer: { ...testConfig, api: consumerApi, call },
           }

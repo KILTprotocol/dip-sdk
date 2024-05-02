@@ -24,7 +24,7 @@ const defaultValues = {
   includeWeb3Name: async () => false,
   linkedAccounts: async () => [],
   relayBlockHeight: async (relayApi: ApiPromise) => {
-    return relayApi.derive.chain.bestNumberFinalized()
+    return relayApi.derive.chain.bestNumberFinalized().then((n) => n.toBn())
   }
 }
 
