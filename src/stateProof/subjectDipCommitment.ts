@@ -36,6 +36,8 @@ export type DipCommitmentProofRes = {
 /**
  * Generate a state proof for the value of a DIP identity commitment of a specific version on the specified provider chain.
  *
+ * For more details about what each `version` provides, please refer to our docs.
+ * 
  * @param params The state proof params.
  *
  * @returns The generated state proof.

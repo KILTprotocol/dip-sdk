@@ -20,13 +20,13 @@ import type { Codec } from "@polkadot/types-codec/types"
  * The options object provided when generating a DIP identity proof.
  */
 export type DipIdentityProofOpts = {
-  /** The `Did` of the subject. */
+  /** The `DID` of the subject. */
   didUri: DidUri
   /** The list of DID verification methods to include in the DIP proof and to reveal to the consumer chain. */
   keyIds: Array<DidKey["id"]>
   /** A flag indicating whether the web3name should be included in the DIP proof. */
   includeWeb3Name: boolean
-  /** The list of accounts linked to the DID ot include in the DIP proof and to reveal to the consumer chain. */
+  /** The list of accounts linked to the DID to include in the DIP proof and to reveal to the consumer chain. */
   linkedAccounts: readonly PalletDidLookupLinkableAccountLinkableAccountId[]
   /** The `ApiPromise` instance for the provider chain. */
   providerApi: ApiPromise
@@ -49,13 +49,13 @@ export type DipIdentityProofRes = {
 }
 /**
  * Generate a DIP proof that reveals the specified information about the DID subject.
- *
+ * 
  * @param params The DIP proof params.
  *
- * @returns The generated DIP proof.
+ * @returns The generated basic DIP proof that reveals the specified parts of the DID Document, optionally revealing its web3name and any linked accounts as specified.
  */
 export async function generateDipIdentityProof({
-  didUri: did,
+  didUri,
   keyIds,
   includeWeb3Name,
   linkedAccounts,
@@ -63,7 +63,7 @@ export async function generateDipIdentityProof({
   version,
 }: DipIdentityProofOpts): Promise<DipIdentityProofRes> {
   const proof = await providerApi.call.dipProvider.generateProof({
-    identifier: toChain(did),
+    identifier: toChain(didUri),
     version,
     proofKeys: keyIds.map((keyId) => keyId.substring(1)),
     accounts: linkedAccounts,
@@ -74,8 +74,5 @@ export async function generateDipIdentityProof({
     throw new Error(providerApi.findError(proof.asErr.toHex()).docs.join("\n"))
   }
 
-  // TODO: Better way to cast this?
-  const okProof = proof.asOk.toJSON() as any
-
-  return okProof
+  return proof.asOk
 }
