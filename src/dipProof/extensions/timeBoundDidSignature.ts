@@ -5,7 +5,7 @@
  * found in the LICENSE file in the root directory of this source tree.
  */
 
-import { toChain } from "@kiltprotocol/did"
+import { toChain as didToChain } from "@kiltprotocol/did"
 import { BN, u8aToHex } from "@polkadot/util"
 
 import type {
@@ -81,7 +81,7 @@ export type TimeBoundDidSignatureRes = {
 
  * @returns The generated DIP proof.
  */
-export async function generateTimeBoundDipDidSignature({
+export async function generateDidSignature({
   provider: { didUri, signer, keyRelationship },
   consumer: {
     api,
@@ -103,7 +103,7 @@ export async function generateTimeBoundDipDidSignature({
   const genesis = genesisHash ?? (await api.query.system.blockHash(0))
   const actualIdentityDetailsRuntimeType = identityDetailsRuntimeType ?? await defaultValues.identityDetailsRuntimeType()
   const identityDetails = (
-    await api.query.dipConsumer.identityEntries<Option<Codec>>(toChain(didUri))
+    await api.query.dipConsumer.identityEntries<Option<Codec>>(didToChain(didUri))
   ).unwrapOr(api.createType(actualIdentityDetailsRuntimeType, null))
 
   const signaturePayload = api
@@ -124,7 +124,7 @@ export async function generateTimeBoundDipDidSignature({
   }
 }
 
-export function signatureToCodec(signature: TimeBoundDidSignatureRes): Record<string, Codec> {
+export function toChain(signature: TimeBoundDidSignatureRes): Record<string, Codec> {
   const encodedSignature = {
     signature: {
       [signature.type]: u8aToHex(signature.signature)

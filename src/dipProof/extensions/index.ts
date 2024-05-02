@@ -7,4 +7,4 @@
 
 export type * from './types.js'
 
-export * from './timeBoundDidSignature.js'
+export * as timeBoundDidSignature from './timeBoundDidSignature.js'

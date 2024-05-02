@@ -8,7 +8,7 @@
 import { setTimeout } from "timers/promises"
 
 import * as Kilt from "@kiltprotocol/sdk-js"
-import { ApiPromise, Keyring, WsProvider } from "@polkadot/api"
+import { ApiPromise, WsProvider } from "@polkadot/api"
 import { BN } from "@polkadot/util"
 import { blake2AsHex } from "@polkadot/util-crypto"
 import dotenv from "dotenv"
@@ -153,7 +153,7 @@ describe("V0", () => {
         newSubmitterKeypair.address as KiltAddress,
         { txCounter: new BN(1) },
       )
-      const newAttestationKey = new Keyring({
+      const newAttestationKey = new Kilt.Utils.Keyring({
         type: "ed25519",
       }).addFromMnemonic(Kilt.Utils.Crypto.mnemonicGenerate())
       const newAttestationKeyTx = (() => {
@@ -171,7 +171,7 @@ describe("V0", () => {
         newSubmitterKeypair.address as KiltAddress,
         { txCounter: new BN(2) },
       )
-      const newDelegationKey = new Keyring({ type: "ed25519" }).addFromMnemonic(
+      const newDelegationKey = new Kilt.Utils.Keyring({ type: "ed25519" }).addFromMnemonic(
         Kilt.Utils.Crypto.mnemonicGenerate(),
       )
       const newDelegationKeyTx = (() => {
@@ -190,7 +190,7 @@ describe("V0", () => {
         { txCounter: new BN(3) },
       )
       const linkedAccounts = [...Array(10)].map(() =>
-        new Keyring({ type: "ed25519" }).addFromMnemonic(
+        new Kilt.Utils.Keyring({ type: "ed25519" }).addFromMnemonic(
           Kilt.Utils.Crypto.mnemonicGenerate(),
         ),
       )
@@ -290,9 +290,9 @@ describe("V0", () => {
             consumer: { ...testConfig, api: consumerApi, call }
           }
           const baseDipProof = await DipSdk.generateDipSiblingBaseProof(config)
-          const crossChainDidSignature = await DipSdk.dipProof.extensions.generateTimeBoundDipDidSignature(config)
+          const crossChainDidSignature = await DipSdk.dipProof.extensions.timeBoundDidSignature.generateDidSignature(config)
 
-          const dipSubmittable = DipSdk.generateDipSubmittableExtrinsic({ additionalProofElements: crossChainDidSignature, api: consumerApi, baseDipProof, call, didUri: did.uri })
+          const dipSubmittable = DipSdk.generateDipSubmittableExtrinsic({ additionalProofElements: DipSdk.dipProof.extensions.timeBoundDidSignature.toChain(crossChainDidSignature), api: consumerApi, baseDipProof, call, didUri: did.uri })
 
           const { status } = await signAndSubmitTx(
             consumerApi,
@@ -337,9 +337,9 @@ describe("V0", () => {
           }
 
           const baseDipProof = await DipSdk.generateDipSiblingBaseProof(config)
-          const crossChainDidSignature = await DipSdk.dipProof.extensions.generateTimeBoundDipDidSignature(config)
+          const crossChainDidSignature = await DipSdk.dipProof.extensions.timeBoundDidSignature.generateDidSignature(config)
 
-          const dipSubmittable = DipSdk.generateDipSubmittableExtrinsic({ additionalProofElements: crossChainDidSignature, api: consumerApi, baseDipProof, call, didUri: did.uri })
+          const dipSubmittable = DipSdk.generateDipSubmittableExtrinsic({ additionalProofElements: DipSdk.dipProof.extensions.timeBoundDidSignature.toChain(crossChainDidSignature), api: consumerApi, baseDipProof, call, didUri: did.uri })
 
           const { status } = await signAndSubmitTx(
             consumerApi,

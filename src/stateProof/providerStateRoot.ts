@@ -20,6 +20,8 @@ export type ProviderStateRootProofOpts = {
   relayApi: ApiPromise
   /** The block number on the provider chain to use for the state proof. If not provided, the latest finalized block number for the provider is used. */
   providerBlockHeight: BN
+  /** The version of the parachain state proof to generate. */
+  proofVersion: number
 }
 /**
  * The response object containing the provider state root proof.
@@ -41,6 +43,8 @@ export async function generateProviderStateRootProof({
   providerApi,
   relayApi,
   providerBlockHeight,
+  // `proofVersion` is not used, for now, but it's added to avoid introducing unnecessary breaking changes
+  // proofVersion,
 }: ProviderStateRootProofOpts): Promise<ProviderStateRootProofRes> {
   const providerBlockHash = await providerApi.rpc.chain.getBlockHash(providerBlockHeight)
   const providerApiAtBlock = await providerApi.at(providerBlockHash)

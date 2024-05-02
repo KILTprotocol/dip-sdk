@@ -86,6 +86,7 @@ export async function generateDipSiblingBaseProof({
     relayApi,
     providerApi,
     providerBlockHeight: actualProviderBlockHeight,
+    proofVersion,
   })
 
   // Proof of commitment must be generated with the state root at the block before the last one finalized.
