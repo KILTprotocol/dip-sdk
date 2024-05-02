@@ -71,5 +71,8 @@ export async function generateDipIdentityProof({
     throw new Error(providerApi.findError(proof.asErr.toHex()).docs.join("\n"))
   }
 
-  return proof.asOk
+  // TODO: Better way to cast this?
+  const okProof = proof.asOk.toJSON() as any
+
+  return okProof
 }
