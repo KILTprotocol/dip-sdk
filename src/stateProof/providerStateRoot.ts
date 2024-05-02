@@ -48,10 +48,9 @@ export type ProviderStateRootProofRes = {
 export async function generateProviderStateRootProof({
   providerApi,
   relayApi,
-  providerBlockHeight,
-} // `proofVersion` is not used, for now, but it's added to avoid introducing unnecessary breaking changes
-// proofVersion,
-: ProviderStateRootProofOpts): Promise<ProviderStateRootProofRes> {
+  providerBlockHeight, // `proofVersion` is not used, for now, but it's added to avoid introducing unnecessary breaking changes
+  // proofVersion,
+}: ProviderStateRootProofOpts): Promise<ProviderStateRootProofRes> {
   const providerBlockHash =
     await providerApi.rpc.chain.getBlockHash(providerBlockHeight)
   const providerApiAtBlock = await providerApi.at(providerBlockHash)
