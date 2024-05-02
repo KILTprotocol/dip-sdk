@@ -5,7 +5,7 @@
  * found in the LICENSE file in the root directory of this source tree.
  */
 
-import { toChain } from "@kiltprotocol/did"
+import { keyToResolvedKey, toChain } from "@kiltprotocol/did"
 import { ApiPromise } from "@polkadot/api"
 import { BN } from "@polkadot/util"
 
@@ -23,10 +23,9 @@ import type { Call } from "@polkadot/types/interfaces"
 const defaultValues = {
   includeWeb3Name: async () => false,
   linkedAccounts: async () => [],
-  providerBlockHeight: async (providerApi: ApiPromise) => {
-    const providerLastFinalizedBlockNumber = await providerApi.derive.chain.bestNumberFinalized()
-    return providerLastFinalizedBlockNumber.toBn().subn(1)
-  },
+  relayBlockHeight: async (relayApi: ApiPromise) => {
+    return relayApi.derive.chain.bestNumberFinalized()
+  }
 }
 
 /** The DIP proof params. */
@@ -37,12 +36,14 @@ export type DipSiblingBaseProofInput = {
   keyIds: Array<DidKey["id"]>
   /** The version of the DIP proof to generate. */
   proofVersion: number
+  /** The para ID of the provider chain. */
+  providerParaId: number
   /** The `ApiPromise` instance for the provider chain. */
   providerApi: ApiPromise
   /** The `ApiPromise` instance for the parent relay chain. */
   relayApi: ApiPromise
-  /** The block number of the provider to use for the generation of the DIP proof. If not provided, the second to last finalized block number is used. */
-  providerBlockHeight?: BN
+  /** The block number of the relay chain to use for the generation of the DIP proof. If not provided, the last finalized block is used. */
+  relayBlockHeight?: BN
   /** Flag indicating whether the generated DIP proof should include the web3name of the DID subject. If not provided, the web3name is not revealed. */
   includeWeb3Name?: boolean
   /** The list of linked accounts to reveal in the generated DIP proof. If not provided, no account is revealed. */
@@ -75,22 +76,23 @@ export async function generateDipSiblingBaseProof({
   didUri,
   keyIds,
   proofVersion,
+  providerParaId,
   providerApi,
   relayApi,
-  providerBlockHeight,
+  relayBlockHeight,
   includeWeb3Name,
   linkedAccounts,
 }: DipSiblingBaseProofInput): Promise<DipSiblingBaseProofRes> {
-  const actualProviderBlockHeight =
-    providerBlockHeight ??
-    (await defaultValues.providerBlockHeight(providerApi))
-  const providerBlockHash = await providerApi.rpc.chain.getBlockHash(actualProviderBlockHeight)
+  const actualRelayBlockHeight =
+    relayBlockHeight ??
+    (await defaultValues.relayBlockHeight(relayApi))
 
   const providerHeadProof = await generateProviderStateRootProof({
     relayApi,
     providerApi,
-    providerBlockHeight: actualProviderBlockHeight,
+    relayBlockHeight: actualRelayBlockHeight,
     proofVersion,
+    providerParaId
   })
   const dipCommitmentProof = await generateDipCommitmentProof({
     didUri,

@@ -9,6 +9,7 @@ import { BN } from "@polkadot/util"
 
 import type { ApiPromise } from "@polkadot/api"
 import type { ReadProof } from "@polkadot/types/interfaces"
+import type { Option, Bytes } from "@polkadot/types-codec"
 
 /**
  * The options object provided when generating a proof for the provider state.
@@ -21,10 +22,12 @@ export type ProviderStateRootProofOpts = {
   providerApi: ApiPromise
   /** The `ApiPromise` instance for the relay chain. */
   relayApi: ApiPromise
-  /** The block number on the provider chain to use for the proof. If not provided, the latest finalized block number for the provider is used. */
-  providerBlockHeight: BN
+  /** The block number on the relaychain to use for the proof. */
+  relayBlockHeight: BN
   /** The version of the parachain state proof to generate. */
   proofVersion: number
+  /** The para ID of the provider chain. */
+  providerParaId: number
 }
 /**
  * The response object containing the provider state proof.
@@ -32,8 +35,8 @@ export type ProviderStateRootProofOpts = {
 export type ProviderStateRootProofRes = {
   /** The raw state proof for the provider state. */
   proof: ReadProof
-  /** The block number of the relaychain which the proof is anchored to. */
-  relayBlockHeight: BN
+  /** The block number of the provider which the proof is calculated from. */
+  providerBlockHeight: BN
 }
 /**
  * Generate a proof for the state root of the provider.
@@ -48,40 +51,28 @@ export type ProviderStateRootProofRes = {
 export async function generateProviderStateRootProof({
   providerApi,
   relayApi,
-  providerBlockHeight, // `proofVersion` is not used, for now, but it's added to avoid introducing unnecessary breaking changes
+  relayBlockHeight, // `proofVersion` is not used, for now, but it's added to avoid introducing unnecessary breaking changes
   // proofVersion,
+  providerParaId,
 }: ProviderStateRootProofOpts): Promise<ProviderStateRootProofRes> {
-  const [latestProviderFinalizedBlockNumber, nextProviderBlock] = await Promise.all([
-    providerApi.derive.chain.bestNumberFinalized(),
-    providerApi.derive.chain.getBlockByNumber(providerBlockHeight.addn(1))
-  ])
-  const isProviderBlockProvable = (() => {
-    const blockDelta = latestProviderFinalizedBlockNumber.toBn().sub(providerBlockHeight)
-    // Fail if delta is -1 (`providerBlockHeight` is > than `latestProviderFinalizedBlockNumber`, i.e., not yet finalized) or 0 (`providerBlockHeight` === `latestProviderFinalizedBlockNumber`)
-    return blockDelta.cmpn(0) > 0
+  const relayBlockHash = await (async () => {
+    const relayBlock = await relayApi.derive.chain.getBlockByNumber(relayBlockHeight)
+    return relayBlock.block.header.hash
   })()
-  // If the provided block number is not followed by at least another finalized block (which contains relaychain info with the state of the specified provider block state), fail.
-  if (!isProviderBlockProvable) {
-    throw new Error(`Specified provider block number "${providerBlockHeight}" cannot be included in a DIP proof, because not finalized and not followed by another finalized block. Current latest finalized block number = "${latestProviderFinalizedBlockNumber}".`)
-  }
-  const providerParaId =
-    await providerApi.query.parachainInfo.parachainId()
-  // Relay parent to use for the proof is retrieved from the block finalized after the one specified as argument, as it contains the finalized relay state, which in turn contains the finalized state of the specified block.
-  const relayParentBlockNumber = await (async () => {
-    const providerApiAtNextBlock = await providerApi.at(nextProviderBlock.block.header.hash)
-    return providerApiAtNextBlock.query.parachainSystem.lastRelayChainBlockNumber()
+  const providerStoredBlockNumber = await (async () => {
+    const relayApiAtBlock = await relayApi.at(relayBlockHash)
+    const providerHeadData = await relayApiAtBlock.query.paras.heads<Option<Bytes>>(providerParaId)
+    const providerBlockHash = providerHeadData.unwrap().slice(0, 32)
+    return providerApi.rpc.chain.getBlock(providerBlockHash).then((block) => block.block.header.number.toBn())
   })()
-  const relayParentBlockHash = await relayApi.rpc.chain.getBlockHash(
-    relayParentBlockNumber,
-  )
 
   const proof = await relayApi.rpc.state.getReadProof(
-    [relayApi.query.paras.heads.key(providerParaId)],
-    relayParentBlockHash,
+    [relayApi.query.paras.heads.key()],
+    relayBlockHash,
   )
 
   return {
     proof,
-    relayBlockHeight: relayParentBlockNumber.toBn(),
+    providerBlockHeight: providerStoredBlockNumber
   }
 }
