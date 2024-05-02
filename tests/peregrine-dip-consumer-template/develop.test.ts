@@ -248,11 +248,14 @@ describe("V0", () => {
       await Kilt.Blockchain.signAndSubmitTx(batchedTx, newSubmitterKeypair, {
         resolveOn: Kilt.Blockchain.IS_FINALIZED,
       })
-      // Await another 24s for the next block to be finalized, before starting with the proof generation
-      await setTimeout(24_000)
+      // Await another 12s for the next block to be finalized, before starting with the proof generation
+      await setTimeout(12_000)
       lastTestSetupRelayBlockNumber = await (async () => {
-        const latestRelayBlocksStoredOnConsumer = await consumerApi.query.relayStore.latestBlockHeights<Vec<u32>>()
-        return latestRelayBlocksStoredOnConsumer[-1].toBn()
+        const latestFinalizedConsumerBlock = await consumerApi.rpc.chain.getFinalizedHead()
+        const consumerApiAtLatestFinalizedBlock = await consumerApi.at(latestFinalizedConsumerBlock)
+        const latestRelayBlocksStoredOnConsumer = await consumerApiAtLatestFinalizedBlock.query.relayStore.latestBlockHeights<Vec<u32>>()
+        const lastBlock = latestRelayBlocksStoredOnConsumer.toArray().pop()!
+        return lastBlock
       })()
       const newFullDid = (await Kilt.Did.resolve(newFullDidUri))
         ?.document as DidDocument
