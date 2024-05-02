@@ -11,10 +11,7 @@ import { describe } from "vitest"
 
 import type { KeyringPair, SubmittableExtrinsic } from "@kiltprotocol/types"
 import type { ApiPromise } from "@polkadot/api"
-import type {
-  AnyNumber,
-  ISubmittableResult,
-} from "@polkadot/types/types"
+import type { AnyNumber, ISubmittableResult } from "@polkadot/types/types"
 
 export async function createProviderApi(address: string): Promise<ApiPromise> {
   return Kilt.connect(address)

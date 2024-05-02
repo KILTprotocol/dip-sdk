@@ -9,8 +9,8 @@
  * @module @kiltprotocol/dip-sdk
  */
 
-export type * from './types.js'
+export type * from "./types.js"
 
-export * as stateProof from './stateProof/index.js'
-export * as dipProof from './dipProof/index.js'
+export * as stateProof from "./stateProof/index.js"
+export * as dipProof from "./dipProof/index.js"
 export * from "./sibling.js"

@@ -12,7 +12,7 @@ import type { ReadProof } from "@polkadot/types/interfaces"
 
 /**
  * The options object provided when generating a proof for the provider state.
- * 
+ *
  * Proof generation logic depends on the value of `proofVersion`.
  * For more details about what each `proofVersion` provides, please refer to our docs.
  */
@@ -37,7 +37,7 @@ export type ProviderStateRootProofRes = {
 }
 /**
  * Generate a proof for the state root of the provider.
- * 
+ *
  * The value and type of the proof depends on the version specified.
  * For more details about what each `proofVersion` provides, please refer to our docs.
  *
@@ -49,10 +49,11 @@ export async function generateProviderStateRootProof({
   providerApi,
   relayApi,
   providerBlockHeight,
-  // `proofVersion` is not used, for now, but it's added to avoid introducing unnecessary breaking changes
-  // proofVersion,
-}: ProviderStateRootProofOpts): Promise<ProviderStateRootProofRes> {
-  const providerBlockHash = await providerApi.rpc.chain.getBlockHash(providerBlockHeight)
+} // `proofVersion` is not used, for now, but it's added to avoid introducing unnecessary breaking changes
+// proofVersion,
+: ProviderStateRootProofOpts): Promise<ProviderStateRootProofRes> {
+  const providerBlockHash =
+    await providerApi.rpc.chain.getBlockHash(providerBlockHeight)
   const providerApiAtBlock = await providerApi.at(providerBlockHash)
   const providerParaId =
     await providerApiAtBlock.query.parachainInfo.parachainId()
@@ -70,6 +71,6 @@ export async function generateProviderStateRootProof({
 
   return {
     proof,
-    relayBlockHeight: relayParentBlockNumber.toBn()
+    relayBlockHeight: relayParentBlockNumber.toBn(),
   }
 }

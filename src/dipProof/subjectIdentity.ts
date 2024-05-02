@@ -8,10 +8,7 @@
 import { toChain } from "@kiltprotocol/did"
 
 import type { PalletDidLookupLinkableAccountLinkableAccountId } from "@kiltprotocol/augment-api"
-import type {
-  DidUri,
-  DidKey,
-} from "@kiltprotocol/types"
+import type { DidUri, DidKey } from "@kiltprotocol/types"
 import type { ApiPromise } from "@polkadot/api"
 import type { Hash } from "@polkadot/types/interfaces"
 import type { Codec } from "@polkadot/types-codec/types"
@@ -49,7 +46,7 @@ export type DipIdentityProofRes = {
 }
 /**
  * Generate a DIP proof that reveals the specified information about the DID subject.
- * 
+ *
  * @param params The DIP proof params.
  *
  * @returns The generated basic DIP proof that reveals the specified parts of the DID Document, optionally revealing its web3name and any linked accounts as specified.
