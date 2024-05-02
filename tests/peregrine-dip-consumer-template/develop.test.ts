@@ -247,11 +247,11 @@ describe("V0", () => {
       await Kilt.Blockchain.signAndSubmitTx(batchedTx, newSubmitterKeypair, {
         resolveOn: Kilt.Blockchain.IS_FINALIZED,
       })
-      // FIXME: Timeout needed since it seems `.getFinalizedHead()` still returns the previous block number as the latest finalized, even if we wait for finalization above. This results in invalid storage proofs.
-      await setTimeout(12_000)
       lastTestSetupProviderBlockNumber = (
-        await providerApi.query.system.number()
+        await providerApi.derive.chain.bestNumberFinalized()
       ).toBn()
+      // Await another 12s for the next block to be finalized, before starting with the proof generation
+      await setTimeout(12_000)
       const newFullDid = (await Kilt.Did.resolve(newFullDidUri))
         ?.document as DidDocument
       submitterKeypair = newSubmitterKeypair
@@ -328,8 +328,7 @@ describe("V0", () => {
           const postKey = blake2AsHex(
             consumerApi
               .createType(
-                `(${
-                  config.consumer.blockNumberRuntimeType as string
+                `(${config.consumer.blockNumberRuntimeType as string
                 }, ${web3NameRuntimeType}, Bytes)`,
                 [blockNumber, web3Name, postText],
               )
@@ -388,8 +387,7 @@ describe("V0", () => {
           const postKey = blake2AsHex(
             consumerApi
               .createType(
-                `(${
-                  config.consumer.blockNumberRuntimeType as string
+                `(${config.consumer.blockNumberRuntimeType as string
                 }, ${web3NameRuntimeType}, Bytes)`,
                 [blockNumber, web3Name, postText],
               )

@@ -51,14 +51,26 @@ export async function generateProviderStateRootProof({
   providerBlockHeight, // `proofVersion` is not used, for now, but it's added to avoid introducing unnecessary breaking changes
   // proofVersion,
 }: ProviderStateRootProofOpts): Promise<ProviderStateRootProofRes> {
-  const providerBlockHash =
-    await providerApi.rpc.chain.getBlockHash(providerBlockHeight)
-  const providerApiAtBlock = await providerApi.at(providerBlockHash)
+  const [latestProviderFinalizedBlockNumber, nextProviderBlock] = await Promise.all([
+    providerApi.derive.chain.bestNumberFinalized(),
+    providerApi.derive.chain.getBlockByNumber(providerBlockHeight.addn(1))
+  ])
+  const isProviderBlockProvable = (() => {
+    const blockDelta = latestProviderFinalizedBlockNumber.toBn().sub(providerBlockHeight)
+    // Fail if delta is -1 (`providerBlockHeight` is > than `latestProviderFinalizedBlockNumber`, i.e., not yet finalized) or 0 (`providerBlockHeight` === `latestProviderFinalizedBlockNumber`)
+    return blockDelta.cmpn(0) > 0
+  })()
+  // If the provided block number is not followed by at least another finalized block (which contains relaychain info with the state of the specified provider block state), fail.
+  if (!isProviderBlockProvable) {
+    throw new Error(`Specified provider block number "${providerBlockHeight}" cannot be included in a DIP proof, because not finalized and not followed by another finalized block. Current latest finalized block number = "${latestProviderFinalizedBlockNumber}".`)
+  }
   const providerParaId =
-    await providerApiAtBlock.query.parachainInfo.parachainId()
-  const relayParentBlockNumber =
-    await providerApiAtBlock.query.parachainSystem.lastRelayChainBlockNumber()
-  // This refers to the previously finalized block, we need the current one.
+    await providerApi.query.parachainInfo.parachainId()
+  // Relay parent to use for the proof is retrieved from the block finalized after the one specified as argument, as it contains the finalized relay state, which in turn contains the finalized state of the specified block.
+  const relayParentBlockNumber = await (async () => {
+    const providerApiAtNextBlock = await providerApi.at(nextProviderBlock.block.header.hash)
+    return providerApiAtNextBlock.query.parachainSystem.lastRelayChainBlockNumber()
+  })()
   const relayParentBlockHash = await relayApi.rpc.chain.getBlockHash(
     relayParentBlockNumber,
   )

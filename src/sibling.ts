@@ -24,11 +24,8 @@ const defaultValues = {
   includeWeb3Name: async () => false,
   linkedAccounts: async () => [],
   providerBlockHeight: async (providerApi: ApiPromise) => {
-    const providerLastFinalizedBlockHash =
-      await providerApi.rpc.chain.getFinalizedHead()
-    return providerApi.rpc.chain
-      .getHeader(providerLastFinalizedBlockHash)
-      .then((h) => h.number.toBn())
+    const providerLastFinalizedBlockNumber = await providerApi.derive.chain.bestNumberFinalized()
+    return providerLastFinalizedBlockNumber.toBn().subn(1)
   },
 }
 
@@ -44,7 +41,7 @@ export type DipSiblingBaseProofInput = {
   providerApi: ApiPromise
   /** The `ApiPromise` instance for the parent relay chain. */
   relayApi: ApiPromise
-  /** The block number of the provider to use for the generation of the DIP proof. If not provided, the latest finalized block number is used. */
+  /** The block number of the provider to use for the generation of the DIP proof. If not provided, the second to last finalized block number is used. */
   providerBlockHeight?: BN
   /** Flag indicating whether the generated DIP proof should include the web3name of the DID subject. If not provided, the web3name is not revealed. */
   includeWeb3Name?: boolean
@@ -66,6 +63,9 @@ export type DipSiblingBaseProofRes = {
  * The generated proof only contains parts of the DID Document of the subject.
  * Any additional components that the consumer chain requires, e.g., a cross-chain DID signature, or the presentation of some claims about the subject, are not part of the generated proof.
  * This SDK contains an `extensions` section in which chain-specific proof formats could be added, if needed.
+ * 
+ * Because of the way relaychain information is passed down to parachains, it is not possible to generate a DIP proof for a block that is the last finalized one.
+ * So, if some state on the provider chain is changed at block N, a DIP proof for it can only be generated once block N+1 is also finalized, as it contains the finalized state of the relaychain parent, which in turn contains the finalized state of the provider parachain at block N.
  *
  * @param params The DIP proof generation parameters.
  *
@@ -84,24 +84,20 @@ export async function generateDipSiblingBaseProof({
   const actualProviderBlockHeight =
     providerBlockHeight ??
     (await defaultValues.providerBlockHeight(providerApi))
+  const providerBlockHash = await providerApi.rpc.chain.getBlockHash(actualProviderBlockHeight)
+
   const providerHeadProof = await generateProviderStateRootProof({
     relayApi,
     providerApi,
     providerBlockHeight: actualProviderBlockHeight,
     proofVersion,
   })
-
-  // Proof of commitment must be generated with the state root at the block before the last one finalized.
-  const dipRootProofBlockHash = await providerApi.rpc.chain.getBlockHash(
-    actualProviderBlockHeight.subn(1),
-  )
   const dipCommitmentProof = await generateDipCommitmentProof({
     didUri,
     providerApi,
-    providerBlockHash: dipRootProofBlockHash,
+    providerBlockHash,
     version: proofVersion,
   })
-
   const dipProof = await generateDipIdentityProof({
     didUri,
     providerApi,
