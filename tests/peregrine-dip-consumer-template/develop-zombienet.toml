@@ -3,6 +3,7 @@ enable_tracing = false
 provider = "kubernetes"
 # 18000 seconds -> 300 minutes -> 5 hours
 timeout = 18000
+node_verifier = "None"
 
 # Env variables:
 # * RELAY_IMAGE: Docker image for relaychain nodes

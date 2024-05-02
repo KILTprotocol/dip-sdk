@@ -7,34 +7,33 @@
 
 import { toChain } from "@kiltprotocol/did"
 import { ApiPromise } from "@polkadot/api"
-import { u8aToHex } from "@polkadot/util"
+import { BN } from "@polkadot/util"
 
-import {
-  defaultValues,
-  generateDipCommitmentProof,
-  generateDipDidSignature,
-  generateDipIdentityProof,
-  generateProviderStateRootProof,
-} from "./utils.js"
+import { generateDipIdentityProof } from "./dipProof/subjectIdentity.js"
+import { generateProviderStateRootProof } from "./stateProof/providerStateRoot.js"
+import { generateDipCommitmentProof } from "./stateProof/subjectDipCommitment.js"
 
+import type { DipIdentityProofRes } from "./dipProof/subjectIdentity.js"
+import type { ProviderStateRootProofRes } from "./stateProof/providerStateRoot.js"
+import type { DipCommitmentProofRes } from "./stateProof/subjectDipCommitment.js"
 import type { PalletDidLookupLinkableAccountLinkableAccountId } from "@kiltprotocol/augment-api"
-import type {
-  DidUri,
-  VerificationKeyRelationship,
-  SubmittableExtrinsic,
-  DidKey,
-  SignExtrinsicCallback,
-  BN,
-} from "@kiltprotocol/types"
-import type { KeyringPair } from "@polkadot/keyring/types"
-import type { Call, Hash } from "@polkadot/types/interfaces"
+import type { DidUri, DidKey, SubmittableExtrinsic } from "@kiltprotocol/types"
+import type { Call } from "@polkadot/types/interfaces"
+
+const defaultValues = {
+  includeWeb3Name: async () => false,
+  linkedAccounts: async () => [],
+  providerBlockHeight: async (providerApi: ApiPromise) => {
+    const providerLastFinalizedBlockHash =
+      await providerApi.rpc.chain.getFinalizedHead()
+    return providerApi.rpc.chain
+      .getHeader(providerLastFinalizedBlockHash)
+      .then((h) => h.number.toBn())
+  },
+}
 
 /** The DIP proof params. */
-export type DipSiblingProofInput = {
-  /** The `Call` on the consumer chain that requires a DIP origin. */
-  call: Call
-  /** The `ApiPromise` instance for the consumer chain. */
-  consumerApi: ApiPromise
+export type DipSiblingBaseProofInput = {
   /** The DID URI of the DIP subject that is performing the cross-chain operation. */
   didUri: DidUri
   /** The verification method IDs of the DID to be revealed in the cross-chain operation. */
@@ -45,133 +44,125 @@ export type DipSiblingProofInput = {
   providerApi: ApiPromise
   /** The `ApiPromise` instance for the parent relay chain. */
   relayApi: ApiPromise
-  /** The signing callback to sign the cross-chain transaction. */
-  signer: SignExtrinsicCallback
-  /** The address of the tx submitter on the consumer chain. */
-  submitterAddress: KeyringPair["address"]
-  /** The `VerificationKeyRelationship` required for the DIP operation to be authorized on the relay chain. */
-  keyRelationship: VerificationKeyRelationship
-  /** The block number until which the DID signature is to be considered fresh. If not provided, the latest best block number + an offset of 50 is used. */
-  validUntil?: BN
-  /** The genesis hash of the consumer chain to use for the DID signature. If not provided, it is retrieved at runtime from the consumer chain. */
-  genesisHash?: Hash
   /** The block number of the provider to use for the generation of the DIP proof. If not provided, the latest finalized block number is used. */
   providerBlockHeight?: BN
-  /** The runtime type definition for an `AccountId` on the consumer chain. If not provided, the `AccountId` type is used. */
-  accountIdRuntimeType?: string
-  /** The runtime type definition for a `BlockNumber` on the consumer chain. If not provided, the `u64` type is used. */
-  blockNumberRuntimeType?: string
-  /** The runtime type definition for the `IdentityDetails` on the consumer chain. If not provided, the `Option<u128>` type, representing a simple nonce, is used. */
-  identityDetailsRuntimeType?: string
   /** Flag indicating whether the generated DIP proof should include the web3name of the DID subject. If not provided, the web3name is not revealed. */
   includeWeb3Name?: boolean
   /** The list of linked accounts to reveal in the generated DIP proof. If not provided, no account is revealed. */
   linkedAccounts?: readonly PalletDidLookupLinkableAccountLinkableAccountId[]
 }
 
+/** The DIP proof result. */
+export type DipSiblingBaseProofRes = {
+  providerHeadProof: ProviderStateRootProofRes
+  dipCommitmentProof: DipCommitmentProofRes
+  dipProof: DipIdentityProofRes
+  proofVersion: number
+}
+
 /**
- * Generate a submittable extrinsic for the provided call which includes a complete DIP proof according to the parameters provided, to be used on a consumer chain of which the provider chain is a sibling.
+ * Generate a base DIP proof according to the parameters provided, to be used on a consumer chain of which the provider chain is a sibling.
  *
- * @param params The DIP proof params.
+ * The generated proof only contains parts of the DID Document of the subject.
+ * Any additional components that the consumer chain requires, e.g., a cross-chain DID signature, or the presentation of some claims about the subject, are not part of the generated proof.
+ * This SDK contains an `extensions` section in which chain-specific proof formats could be added, if needed.
  *
- * @returns The `SubmittableExtrinsic` containing the signed cross-chain operation, that must be submitted by the account specified as the `submitterAddress` parameter.
+ * @param params The DIP proof generation parameters.
+ *
+ * @returns The [[DipSiblingBaseProofRes]] containing the basic DIP proof components revealing parts of a DID Document anchored to a specific state root and block number on the provider chain, without any consumer-specific logic.
  */
-export async function generateDipAuthorizedTxForSibling({
-  call,
-  consumerApi,
+export async function generateDipSiblingBaseProof({
   didUri,
   keyIds,
   proofVersion,
   providerApi,
   relayApi,
-  signer,
-  submitterAddress,
-  keyRelationship,
-  // Optional
-  validUntil,
-  genesisHash,
   providerBlockHeight,
-  // With defaults
-  accountIdRuntimeType = defaultValues.accountIdRuntimeType,
-  blockNumberRuntimeType = defaultValues.blockNumberRuntimeType,
-  identityDetailsRuntimeType = defaultValues.identityDetailsRuntimeType,
-  includeWeb3Name = defaultValues.includeWeb3Name,
-  linkedAccounts = defaultValues.linkedAccounts,
-}: DipSiblingProofInput): Promise<SubmittableExtrinsic> {
-  const {
-    proof: { proof: providerStateRootProof },
-    providerBlockHeight: providerStateRootProofProviderBlockHeight,
-    relayBlockHeight: providerStateRootProofRelayBlockHeight,
-  } = await generateProviderStateRootProof({
+  includeWeb3Name,
+  linkedAccounts,
+}: DipSiblingBaseProofInput): Promise<DipSiblingBaseProofRes> {
+  const actualProviderBlockHeight =
+    providerBlockHeight ??
+    (await defaultValues.providerBlockHeight(providerApi))
+  const providerHeadProof = await generateProviderStateRootProof({
     relayApi,
     providerApi,
-    providerBlockHeight,
+    providerBlockHeight: actualProviderBlockHeight,
+    proofVersion,
   })
 
   // Proof of commitment must be generated with the state root at the block before the last one finalized.
   const dipRootProofBlockHash = await providerApi.rpc.chain.getBlockHash(
-    providerStateRootProofProviderBlockHeight.subn(1),
+    actualProviderBlockHeight.subn(1),
   )
-
-  const {
-    proof: { proof: dipCommitmentProof },
-  } = await generateDipCommitmentProof({
+  const dipCommitmentProof = await generateDipCommitmentProof({
     didUri,
     providerApi,
     providerBlockHash: dipRootProofBlockHash,
     version: proofVersion,
   })
 
-  const { proof: dipIdentityProof } = await generateDipIdentityProof({
+  const dipProof = await generateDipIdentityProof({
     didUri,
     providerApi,
     keyIds,
-    linkedAccounts,
+    linkedAccounts: linkedAccounts || (await defaultValues.linkedAccounts()),
     version: proofVersion,
-    includeWeb3Name,
+    includeWeb3Name: includeWeb3Name || (await defaultValues.includeWeb3Name()),
   })
 
-  const {
-    validUntil: didSignatureExpirationBlockNumber,
-    signature: didSignature,
-    type: didSignatureType,
-  } = await generateDipDidSignature({
-    provider: {
-      didUri,
-      signer,
-      keyRelationship,
-    },
-    consumer: {
-      api: consumerApi,
-      call,
-      submitterAddress,
-      accountIdRuntimeType,
-      validUntil,
-      blockNumberRuntimeType,
-      genesisHash,
-      identityDetailsRuntimeType,
-    },
-  })
+  return {
+    providerHeadProof,
+    dipCommitmentProof,
+    dipProof,
+    proofVersion,
+  }
+}
 
-  return consumerApi.tx.dipConsumer.dispatchAs(
+/** The params to create an extrinsic containing a cross-chain DIP proof and operation. */
+export type GenerateDipSubmittableExtrinsicInput = {
+  /** Any consumer-specific pieces of information to be included in the DIP proof beyond proof-of-DID. */
+  additionalProofElements: Record<any, any>
+  /** The [[ApiPromise]] instance of the consumer chain. */
+  api: ApiPromise
+  /** [[DipSiblingBaseProofRes]] as generated by [[generateDipSiblingBaseProof]]. */
+  baseDipProof: DipSiblingBaseProofRes
+  /** The [[Call]] on the consumer chain that requires a DIP origin to be authorized. */
+  call: Call
+  /** The [[DidUri]] of the subject performing the cross-chain operation. */
+  didUri: DidUri
+}
+
+/**
+ * Extend a [[DipSiblingBaseProofRes]] proof with consumer-specific components, and compiles the `dispatchAs` extrinsic following the consumer's type registry.
+ *
+ * @param params The consumer information.
+ *
+ * @returns A [[SubmittableExtrinsic]] that refers to a [[Call]] on the consumer chain being dispatched by the specified [[DidUri]].
+ */
+export function generateDipSubmittableExtrinsic({
+  additionalProofElements,
+  api,
+  baseDipProof,
+  call,
+  didUri,
+}: GenerateDipSubmittableExtrinsicInput): SubmittableExtrinsic {
+  const { proofVersion, ...dipProof } = baseDipProof
+
+  return api.tx.dipConsumer.dispatchAs(
     toChain(didUri),
     {
       [`V${proofVersion}`]: {
         providerHeadProof: {
-          relayBlockNumber: providerStateRootProofRelayBlockHeight,
-          proof: providerStateRootProof,
+          relayBlockNumber: dipProof.providerHeadProof.relayBlockHeight,
+          proof: dipProof.providerHeadProof.proof.proof,
         },
-        dipCommitmentProof,
+        dipCommitmentProof: dipProof.dipCommitmentProof.proof.proof,
         dipProof: {
-          blinded: dipIdentityProof.blinded,
-          revealed: dipIdentityProof.revealed,
+          blinded: dipProof.dipProof.proof.blinded,
+          revealed: dipProof.dipProof.proof.revealed,
         },
-        signature: {
-          signature: {
-            [didSignatureType]: u8aToHex(didSignature),
-          },
-          validUntil: didSignatureExpirationBlockNumber,
-        },
+        ...additionalProofElements,
       },
     },
     call,

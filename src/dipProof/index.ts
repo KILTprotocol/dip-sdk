@@ -5,12 +5,7 @@
  * found in the LICENSE file in the root directory of this source tree.
  */
 
-/**
- * @module @kiltprotocol/dip-sdk
- */
-
 export type * from "./types.js"
 
-export * as stateProof from "./stateProof/index.js"
-export * as dipProof from "./dipProof/index.js"
-export * from "./sibling.js"
+export * from "./subjectIdentity.js"
+export * as extensions from "./extensions/index.js"
