@@ -3,6 +3,7 @@ enable_tracing = false
 provider = "kubernetes"
 # 18000 seconds -> 300 minutes -> 5 hours
 timeout = 18000
+node_verifier = "None"
 
 # Env variables:
 # * RELAY_IMAGE: Docker image for relaychain nodes
@@ -31,6 +32,7 @@ name = "relay-charlie"
 id = 2000
 
 [parachains.collator]
+args = ["-ldip=trace"]
 command = "node-executable"
 name = "provider-alice"
 image = "{{PROVIDER_IMAGE}}"
@@ -40,6 +42,7 @@ rpc_port = "{{PROVIDER_ALICE_RPC}}"
 id = 2001
 
 [parachains.collator]
+args = ["-ldip=trace"]
 command = "node-executable"
 name = "consumer-alice"
 image = "{{CONSUMER_IMAGE}}"

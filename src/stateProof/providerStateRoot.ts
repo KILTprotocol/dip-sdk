@@ -8,7 +8,8 @@
 import { BN } from "@polkadot/util"
 
 import type { ApiPromise } from "@polkadot/api"
-import type { ReadProof } from "@polkadot/types/interfaces"
+import type { ReadProof, Hash } from "@polkadot/types/interfaces"
+import type { Option, Bytes } from "@polkadot/types-codec"
 
 /**
  * The options object provided when generating a proof for the provider state.
@@ -21,8 +22,8 @@ export type ProviderStateRootProofOpts = {
   providerApi: ApiPromise
   /** The `ApiPromise` instance for the relay chain. */
   relayApi: ApiPromise
-  /** The block number on the provider chain to use for the proof. If not provided, the latest finalized block number for the provider is used. */
-  providerBlockHeight: BN
+  /** The block number on the relaychain to use for the proof. */
+  relayBlockHeight: BN
   /** The version of the parachain state proof to generate. */
   proofVersion: number
 }
@@ -32,12 +33,21 @@ export type ProviderStateRootProofOpts = {
 export type ProviderStateRootProofRes = {
   /** The raw state proof for the provider state. */
   proof: ReadProof
-  /** The block number of the relaychain which the proof is anchored to. */
-  relayBlockHeight: BN
+  /** The hash of the relay block which the proof is anchored to. */
+  relayBlockHash: Hash
+  /** The number of the relay block which the proof is anchored to. */
+  relayBlockHeight: BN,
+  /** The hash of the parachain block which the proof is calculated from. */
+  providerBlockHash: Hash
+  /** The number of the parachain block which the proof is calculated from. */
+  providerBlockHeight: BN
 }
 /**
  * Generate a proof for the state root of the provider.
  *
+ * Given the relay block height, its `paras::heads` storage is queried to fetch information about the provider parent block.
+ * Then, the next provider block is fetched and use as the basis of the proof, since its state (root) is finalized in the specified relay block.
+ * 
  * The value and type of the proof depends on the version specified.
  * For more details about what each `proofVersion` provides, please refer to our docs.
  *
@@ -48,28 +58,41 @@ export type ProviderStateRootProofRes = {
 export async function generateProviderStateRootProof({
   providerApi,
   relayApi,
-  providerBlockHeight, // `proofVersion` is not used, for now, but it's added to avoid introducing unnecessary breaking changes
+  relayBlockHeight, // `proofVersion` is not used, for now, but it's added to avoid introducing unnecessary breaking changes
   // proofVersion,
 }: ProviderStateRootProofOpts): Promise<ProviderStateRootProofRes> {
-  const providerBlockHash =
-    await providerApi.rpc.chain.getBlockHash(providerBlockHeight)
-  const providerApiAtBlock = await providerApi.at(providerBlockHash)
-  const providerParaId =
-    await providerApiAtBlock.query.parachainInfo.parachainId()
-  const relayParentBlockNumber =
-    await providerApiAtBlock.query.parachainSystem.lastRelayChainBlockNumber()
-  // This refers to the previously finalized block, we need the current one.
-  const relayParentBlockHash = await relayApi.rpc.chain.getBlockHash(
-    relayParentBlockNumber,
-  )
+  const providerParaId = await providerApi.query.parachainInfo.parachainId()
+
+  const relayBlockHash = await (async () => {
+    const { block: { header } } = await relayApi.derive.chain.getBlockByNumber(relayBlockHeight)
+    return header.hash
+  })()
+  // This uses the `paras::heads` storage entry to fetch info about the finalized parent header, and then adds 1 to fetch the next provider block, whose state root is included in the fetched `paras::heads` entry.
+  const providerStoredHeader = await (async () => {
+    const relayApiAtBlock = await relayApi.at(relayBlockHash)
+    // Contains (provider_parent, provider_current_extrinsic_root, provider_current_state_root)
+    const providerHeadData = await relayApiAtBlock.query.paras.heads<Option<Bytes>>(providerParaId)
+    const providerBlockNumber = await (async () => {
+      // First 32 bytes of the `HeadData` is the parent block hash on which the current state is built.
+      const providerParentBlockHash = providerHeadData.unwrap().slice(0, 32)
+      // Since we need to prove the state of the current block, we add +1 to the retrieved block number of the parent block.
+      const { block: { header: { number } } } = await providerApi.rpc.chain.getBlock(providerParentBlockHash)
+      return number.toBn().addn(1)
+    })()
+    const { block: { header: providerHeader } } = await providerApi.derive.chain.getBlockByNumber(providerBlockNumber)
+    return providerHeader
+  })()
 
   const proof = await relayApi.rpc.state.getReadProof(
     [relayApi.query.paras.heads.key(providerParaId)],
-    relayParentBlockHash,
+    relayBlockHash,
   )
 
   return {
     proof,
-    relayBlockHeight: relayParentBlockNumber.toBn(),
+    relayBlockHash,
+    relayBlockHeight,
+    providerBlockHash: providerStoredHeader.hash,
+    providerBlockHeight: providerStoredHeader.number.toBn()
   }
 }
