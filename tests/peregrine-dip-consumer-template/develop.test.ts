@@ -91,7 +91,6 @@ describe("V0", () => {
     let did: DidDocument
     let web3Name: Web3Name
     let didKeypair: Kilt.KeyringPair
-    let lastTestSetupRelayBlockNumber: BN
     let testConfig: typeof v0Config &
       Pick<
         DipSiblingBaseProofInput,
@@ -250,13 +249,6 @@ describe("V0", () => {
       })
       // Await another 12s for the next block to be finalized, before starting with the proof generation
       await setTimeout(12_000)
-      lastTestSetupRelayBlockNumber = await (async () => {
-        const latestFinalizedConsumerBlock = await consumerApi.rpc.chain.getFinalizedHead()
-        const consumerApiAtLatestFinalizedBlock = await consumerApi.at(latestFinalizedConsumerBlock)
-        const latestRelayBlocksStoredOnConsumer = await consumerApiAtLatestFinalizedBlock.query.relayStore.latestBlockHeights<Vec<u32>>()
-        const lastBlock = latestRelayBlocksStoredOnConsumer.toArray().pop()!
-        return lastBlock
-      })()
       const newFullDid = (await Kilt.Did.resolve(newFullDidUri))
         ?.document as DidDocument
       submitterKeypair = newSubmitterKeypair
@@ -291,70 +283,20 @@ describe("V0", () => {
     withCrossModuleSystemImport<typeof import("@kiltprotocol/dip-sdk")>(
       "..",
       async (DipSdk) => {
-        it("Successful posts on the consumer's PostIt pallet using by default the latest relay finalized block (it works if provider and consumer are backed and included finalized in the same relayblock and not alternatively)", async () => {
+        it("Successful posts on the consumer's PostIt pallet using the latest relaychain block stored on the consumer chain", async () => {
           const { consumerApi } = testConfig
           const postText = "Hello, world!"
           const call = consumerApi.tx.postIt.post(postText).method as Call
+          const lastStoredRelayBlockNumber = await (async () => {
+            const latestFinalizedConsumerBlock = await consumerApi.rpc.chain.getFinalizedHead()
+            const consumerApiAtLatestFinalizedBlock = await consumerApi.at(latestFinalizedConsumerBlock)
+            const latestRelayBlocksStoredOnConsumer = await consumerApiAtLatestFinalizedBlock.query.relayStore.latestBlockHeights<Vec<u32>>()
+            const lastBlock = latestRelayBlocksStoredOnConsumer.toArray().pop()!
+            return lastBlock
+          })()
           const config: DipSiblingBaseProofInput & TimeBoundDidSignatureOpts = {
             ...testConfig,
-            provider: testConfig,
-            consumer: { ...testConfig, api: consumerApi, call },
-          }
-          const baseDipProof = await DipSdk.generateDipSiblingBaseProof(config)
-          const crossChainDidSignature =
-            await DipSdk.dipProof.extensions.timeBoundDidSignature.generateDidSignature(
-              config,
-            )
-
-          const dipSubmittable = DipSdk.generateDipSubmittableExtrinsic({
-            additionalProofElements:
-              DipSdk.dipProof.extensions.timeBoundDidSignature.toChain(
-                crossChainDidSignature,
-              ),
-            api: consumerApi,
-            baseDipProof,
-            call,
-            didUri: did.uri,
-          })
-
-          const { status } = await signAndSubmitTx(
-            consumerApi,
-            dipSubmittable,
-            submitterKeypair,
-          )
-          expect(
-            status.isInBlock,
-            "Status of submitted tx should be in block.",
-          ).toBe(true)
-          const blockHash = status.asInBlock
-          const blockNumber = (await consumerApi.rpc.chain.getHeader(blockHash))
-            .number
-          // The example PostIt pallet generates the storage key for a post by hashing (block number, submitter's username, content of the post).
-          const postKey = blake2AsHex(
-            consumerApi
-              .createType(
-                `(${config.consumer.blockNumberRuntimeType as string
-                }, ${web3NameRuntimeType}, Bytes)`,
-                [blockNumber, web3Name, postText],
-              )
-              .toHex(),
-          )
-          const postEntry =
-            await consumerApi.query.postIt.posts<Option<Codec>>(postKey)
-          expect(
-            postEntry.isSome,
-            "Post should successfully be stored on the chain",
-          ).toBe(true)
-        })
-
-        it("Successful posts on the consumer's PostIt pallet using the same block as before", async () => {
-          const { consumerApi } = testConfig
-          const postText = "Hello, world!"
-          const call = consumerApi.tx.postIt.post(postText).method as Call
-          const config: DipSiblingBaseProofInput & TimeBoundDidSignatureOpts = {
-            ...testConfig,
-            // Set explicit block number for the DIP proof
-            relayBlockHeight: lastTestSetupRelayBlockNumber,
+            relayBlockHeight: lastStoredRelayBlockNumber,
             provider: testConfig,
             consumer: { ...testConfig, api: consumerApi, call },
           }

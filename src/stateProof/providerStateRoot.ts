@@ -61,14 +61,20 @@ export async function generateProviderStateRootProof({
   const providerParaId = await providerApi.query.parachainInfo.parachainId()
 
   const relayBlockHash = await (async () => {
-    const relayBlock = await relayApi.derive.chain.getBlockByNumber(relayBlockHeight)
-    return relayBlock.block.header.hash
+    const { block: { header } } = await relayApi.derive.chain.getBlockByNumber(relayBlockHeight)
+    return header.hash
   })()
+  // This uses the `paras::heads` storage entry to fetch info about the finalized parent header, and then adds 1 to fetch the next provider block, whose state root is included in the fetched `paras::heads` entry.
   const providerStoredHeader = await (async () => {
     const relayApiAtBlock = await relayApi.at(relayBlockHash)
     const providerHeadData = await relayApiAtBlock.query.paras.heads<Option<Bytes>>(providerParaId)
-    const providerBlockHash = providerHeadData.unwrap().slice(0, 32)
-    return providerApi.rpc.chain.getBlock(providerBlockHash).then(({ block: { header } }) => header)
+    const providerBlockNumber = await (async () => {
+      const providerParentBlockHash = providerHeadData.unwrap().slice(0, 32)
+      const { block: { header: { number } } } = await providerApi.rpc.chain.getBlock(providerParentBlockHash)
+      return number.toBn().addn(1)
+    })()
+    const { block: { header: providerHeader } } = await providerApi.derive.chain.getBlockByNumber(providerBlockNumber)
+    return providerHeader
   })()
 
   const proof = await relayApi.rpc.state.getReadProof(
