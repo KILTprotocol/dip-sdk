@@ -51,14 +51,12 @@
     "clean:docs": "rimraf docs/api",
     "lint": "eslint --ext .ts .",
     "lint:fix": "yarn lint --fix",
-    "prepublish": "yarn exec cp -f ../../LICENSE .",
     "publish": "yarn npm publish --access=public",
     "test:e2e:peregrine-provider": "yarn build && vitest run tests/peregrine-dip-consumer-template",
     "test:e2e:dip-template-provider": "yarn build && vitest run tests/dip-provider-template-dip-consumer-template",
     "test:e2e:start-network:peregrine-provider:develop": "env $(cat tests/peregrine-dip-consumer-template/.env.develop.test | xargs) yarn zombienet spawn tests/peregrine-dip-consumer-template/develop-zombienet.toml",
     "test:e2e:start-network:dip-template-provider:develop": "env $(cat tests/dip-provider-template-dip-consumer-template/.env.develop.test | xargs) yarn zombienet spawn tests/dip-provider-template-dip-consumer-template/develop-zombienet.toml"
   },
-  "stableVersion": "0.0.0",
   "type": "module",
   "types": "./dist/cjs/index.d.ts",
   "version": "0.0.0"
