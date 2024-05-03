@@ -62,9 +62,6 @@ export type DipSiblingBaseProofRes = {
  * The generated proof only contains parts of the DID Document of the subject.
  * Any additional components that the consumer chain requires, e.g., a cross-chain DID signature, or the presentation of some claims about the subject, are not part of the generated proof.
  * This SDK contains an `extensions` section in which chain-specific proof formats could be added, if needed.
- * 
- * Because of the way relaychain information is passed down to parachains, it is not possible to generate a DIP proof for a block that is the last finalized one.
- * So, if some state on the provider chain is changed at block N, a DIP proof for it can only be generated once block N+1 is also finalized, as it contains the finalized state of the relaychain parent, which in turn contains the finalized state of the provider parachain at block N.
  *
  * @param params The DIP proof generation parameters.
  *

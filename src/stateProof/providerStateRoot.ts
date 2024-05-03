@@ -45,6 +45,9 @@ export type ProviderStateRootProofRes = {
 /**
  * Generate a proof for the state root of the provider.
  *
+ * Given the relay block height, its `paras::heads` storage is queried to fetch information about the provider parent block.
+ * Then, the next provider block is fetched and use as the basis of the proof, since its state (root) is finalized in the specified relay block.
+ * 
  * The value and type of the proof depends on the version specified.
  * For more details about what each `proofVersion` provides, please refer to our docs.
  *
@@ -67,9 +70,12 @@ export async function generateProviderStateRootProof({
   // This uses the `paras::heads` storage entry to fetch info about the finalized parent header, and then adds 1 to fetch the next provider block, whose state root is included in the fetched `paras::heads` entry.
   const providerStoredHeader = await (async () => {
     const relayApiAtBlock = await relayApi.at(relayBlockHash)
+    // Contains (provider_parent, provider_current_extrinsic_root, provider_current_state_root)
     const providerHeadData = await relayApiAtBlock.query.paras.heads<Option<Bytes>>(providerParaId)
     const providerBlockNumber = await (async () => {
+      // First 32 bytes of the `HeadData` is the parent block hash on which the current state is built.
       const providerParentBlockHash = providerHeadData.unwrap().slice(0, 32)
+      // Since we need to prove the state of the current block, we add +1 to the retrieved block number of the parent block.
       const { block: { header: { number } } } = await providerApi.rpc.chain.getBlock(providerParentBlockHash)
       return number.toBn().addn(1)
     })()
