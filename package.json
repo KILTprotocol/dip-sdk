@@ -39,7 +39,7 @@
   "license": "BSD-4-Clause",
   "main": "./dist/cjs/index.js",
   "name": "@kiltprotocol/dip-sdk",
-  "packageManager": "yarn@3.6.1",
+  "packageManager": "yarn@4.2.2",
   "repository": "github:kiltprotocol/dip-sdk",
   "scripts": {
     "build": "yarn build:cjs && yarn build:esm",
