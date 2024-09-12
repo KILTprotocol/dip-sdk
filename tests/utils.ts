@@ -6,15 +6,24 @@
  */
 
 import * as Kilt from "@kiltprotocol/sdk-js"
-import { SubmittableResult } from "@polkadot/api"
+import { dipProviderCalls, didCalls, types } from "@kiltprotocol/type-definitions"
+import { ApiPromise, SubmittableResult, WsProvider } from "@polkadot/api"
 import { describe } from "vitest"
 
 import type { KeyringPair, SubmittableExtrinsic } from "@kiltprotocol/types"
-import type { ApiPromise } from "@polkadot/api"
-import type { AnyNumber, ISubmittableResult } from "@polkadot/types/types"
+import type { AnyNumber, DefinitionsCall, ISubmittableResult } from "@polkadot/types/types"
+
+const dipProviderTemplateRuntimeCalls: DefinitionsCall = {
+  ...dipProviderCalls,
+  ...didCalls,
+}
 
 export async function createProviderApi(address: string): Promise<ApiPromise> {
-  return Kilt.connect(address)
+  return ApiPromise.create({
+    provider: new WsProvider(address),
+    runtime: dipProviderTemplateRuntimeCalls,
+    types,
+  })
 }
 
 // Taken from the KILT SDK: https://github.com/KILTprotocol/sdk-js/blob/c4ab492812d19169532a399b57dd1bd013a61570/packages/chain-helpers/src/blockchain/Blockchain.ts#L179

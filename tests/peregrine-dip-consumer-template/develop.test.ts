@@ -106,11 +106,11 @@ describe("V0", () => {
       )
       const providerUnit = "0".repeat(16)
       const consumerUnit = "0".repeat(13)
-      const balanceTransferTxOnProviderChain = providerApi.tx.balances.transfer(
+      const balanceTransferTxOnProviderChain = providerApi.tx.balances.transferAllowDeath(
         newSubmitterKeypair.address,
         `1${providerUnit}`,
       )
-      const balanceTransferTxOnConsumerChain = consumerApi.tx.balances.transfer(
+      const balanceTransferTxOnConsumerChain = consumerApi.tx.balances.transferAllowDeath(
         newSubmitterKeypair.address,
         `1${consumerUnit}`,
       )

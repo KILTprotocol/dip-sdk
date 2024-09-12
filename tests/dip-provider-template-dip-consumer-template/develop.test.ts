@@ -31,7 +31,7 @@ import type { Call } from "@polkadot/types/interfaces"
 import type { Codec } from "@polkadot/types/types"
 import type { u32 } from '@polkadot/types-codec'
 
-import { signAndSubmitTx, withCrossModuleSystemImport } from "../utils.js"
+import { createProviderApi, signAndSubmitTx, withCrossModuleSystemImport } from "../utils.js"
 
 dotenv.config({
   path: "tests/dip-provider-template-dip-consumer-template/.env.develop.test",
@@ -71,7 +71,7 @@ describe("V0", () => {
   beforeAll(async () => {
     const [relayApi, providerApi, consumerApi] = await Promise.all([
       ApiPromise.create({ provider: new WsProvider(relayAddress) }),
-      Kilt.connect(providerAddress),
+      createProviderApi(providerAddress),
       ApiPromise.create({ provider: new WsProvider(consumerAddress) }),
     ])
     Kilt.ConfigService.set({ api: providerApi })
@@ -106,11 +106,11 @@ describe("V0", () => {
       )
       const providerUnit = "0".repeat(13)
       const consumerUnit = "0".repeat(13)
-      const balanceTransferTxOnProviderChain = providerApi.tx.balances.transfer(
+      const balanceTransferTxOnProviderChain = providerApi.tx.balances.transferAllowDeath(
         newSubmitterKeypair.address,
         `1${providerUnit}`,
       )
-      const balanceTransferTxOnConsumerChain = consumerApi.tx.balances.transfer(
+      const balanceTransferTxOnConsumerChain = consumerApi.tx.balances.transferAllowDeath(
         newSubmitterKeypair.address,
         `1${consumerUnit}`,
       )
